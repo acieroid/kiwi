@@ -18,7 +18,8 @@ cabal-version:       >=1.10
 
 executable kiwi
   main-is:             Main.hs
-  -- other-modules:       
+  other-modules:       Kiwi.Data
+                       Kiwi.Render
   -- other-extensions:    
   build-depends:       base >=4.6 && <4.7
                        , containers
