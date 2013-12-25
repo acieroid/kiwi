@@ -5,11 +5,14 @@ import Text.Regex (Regex, mkRegex, matchRegex)
 -- | An opaque type representing a valid name of a page (that
 -- can be used in an URL)
 data ValidPageName = ValidPageName String
-               deriving (Show, Eq)
+               deriving Eq
+
+instance Show ValidPageName where
+  show (ValidPageName s) = s
 
 -- | Regex that valid page names should match
 validPageNameRegex :: Regex
-validPageNameRegex = mkRegex "^[a-zA-Z0-9\\-/]+$"
+validPageNameRegex = mkRegex "^[a-zA-Z0-9/-]+$"
 
 -- | Construct a valid page name
 validatePageName :: String -> Maybe ValidPageName
@@ -43,11 +46,14 @@ data AccessMode = ReadWrite     -- ^ Read and write for everybody
 
 -- | An opaque type representing a valid name of a wiki
 data ValidWikiName = ValidWikiName String
-               deriving (Show, Eq)
+               deriving Eq
+
+instance Show ValidWikiName where
+  show (ValidWikiName s) = s
 
 -- | Regex that valid wiki names should match
 validWikiNameRegex :: Regex
-validWikiNameRegex = mkRegex "^[a-zA-Z0-9\\-]+$"
+validWikiNameRegex = mkRegex "^[a-zA-Z0-9-]+$"
 
 -- | Construct a valid wiki name
 validateWikiName :: String -> Maybe ValidWikiName
