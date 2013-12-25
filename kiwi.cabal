@@ -25,5 +25,7 @@ executable kiwi
                        , containers
                        , pandoc
                        , blaze-markup
+                       , regex-compat
+                       , text
   -- hs-source-dirs:      
   default-language:    Haskell2010
