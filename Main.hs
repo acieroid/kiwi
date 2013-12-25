@@ -1,5 +1,14 @@
+import Data.Set as Set
+import Text.Pandoc.Options
+import Text.Pandoc.Readers.Markdown
+import Text.Pandoc.Writers.HTML
+import Text.Blaze.Renderer.String
+
 data AccessMode = ReadWrite | ReadNoWrite | NoReadNoWrite
                 deriving (Show, Eq)
+
+class Renderable a where
+  render :: a -> String
 
 data Page = Page {
     version :: Int
@@ -29,5 +38,8 @@ exampleWiki =
        , password = Nothing
        }
 
+instance Renderable Page where
+  render page = renderMarkup $ writeHtml def $ readMarkdown def $ content page
+
 main :: IO ()
-main = putStrLn (show exampleWiki)
+main = putStrLn (render examplePage)
