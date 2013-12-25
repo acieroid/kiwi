@@ -1,0 +1,86 @@
+* About
+Kiwi is a simple wiki system similar to the currently defunct
+couch.it: everyone can create a new wiki (maybe protected by a
+password), composed by a set of pages. No authentication is required,
+and all the changes are kept permanently.
+
+* Architecture
+Kiwi has two main components: the rendering engine and the editing
+engine. The rendering engine simply generates static html pages from
+the description of a wiki; those static pages will be served by a web
+server, statically. The editing engine has a simple API to submit
+changes to a page, and once a page has been changed, the rendering
+engine will be called to regenerate this page.
+
+The static pages rendered by the rendering engine contains some
+Javascript code to call the editing engine.
+
+* Storage and Schema
+Storage is done on a persistent key-value store.
+
+Each wiki is stored under the prefix =wiki.<wid>= where =<wid>= is
+a unique wiki identifier. This prefix has the following suffixes:
+  - =name=: name of the wiki.
+  - =page=: prefix for the pages.
+  - =password=: optional hash of the wiki's password.
+  - =access=: "+r+w" or "+r-w", "-r-w", respectively for a public wiki
+    (read and write for everybody), a wiki with writes protected by a
+    password, and a wiki with reads and writes protected by a password.
+
+Each page of a wiki is thus stored under =page.<pid>= where =<pid>=
+is a unique page identifier. The keys under this prefix are:
+  - =name=: name of the page.
+  - =version.current=: current version of the page.
+  - =version.latest=: latest version of the page
+  - =version.<n>.content=: content of the nth version of the page (n
+    is an integer).
+  - =version.<n>.date=: date of creation of this version.
+
+By default, each wiki has an page named =index= pre-filled.
+
+Also, for simplicity reasons, the prefixes =hashes= (resp.
+=wiki.<wid>.hashes=) contains keys equal to the hash of the wiki name
+(resp. page name), associated with the unique identifier of this wiki
+(resp. page).
+
+* API
+** Add a wiki
+  - URI: =/wiki=
+  - Method: =POST=
+  - Return codes:
+    - 201 and the wiki URI in case of success
+    - 409 if the wiki page name is already taken
+
+** Get a wiki page
+  - URI: =/wiki/<name>/<pagename>=
+  - Method: =GET=
+  - Return codes:
+    - 200 and a representation of the wiki page
+    - 401 if this wiki is protected or the password is incorrect
+    - 404 if the page does not exist
+
+If the page is protected, add the =GET= parameter =password=.
+
+** Edit a wiki page
+  - URI: =/wiki/<name>/<pagename>=
+  - Method: =POST=
+  - Input: the page content
+  - Return codes:
+    - 201 and the page URI in case of success
+    - 401 if the page is protected or the password is incorrect
+    - 415 if the input is not valid
+
+If the page does not exist, it is created.
+If the page is protected, add the =POST= parameter =password=.
+
+** Restore a previous version of a wiki page
+To do this, simply get the content of the version you want, and set
+the current content to this.
+
+* Ideas
+  - Locks: when starting to edit a page, you acquire a lock on it,
+    that you can keep only a certain amount of time. If someone else
+    had the lock, you have to wait until they release it or edit the
+    page. This avoids having to deal with conflicts. Every IP can only
+    hold a lock for a specific amount of time to avoid blocking
+    everybody by constantly acquiring the lock.
