@@ -15,6 +15,9 @@ import qualified Text.Blaze.Html5.Attributes as HA
 import qualified Text.Blaze.Internal as HI
 import Kiwi.Data
 
+-- TODO: factor out the html part, to have a more generic rendering
+-- engine (that can eg. output pdf, etc.)
+
 -- | Skeleton for HTML output. The argument will be put inside the body
 skeleton :: String -> H.Html -> H.Html
 skeleton name body =

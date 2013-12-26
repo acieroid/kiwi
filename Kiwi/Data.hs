@@ -1,4 +1,7 @@
-module Kiwi.Data where
+module Kiwi.Data (
+  ValidPageName, validatePageName, Page(..), examplePage,
+  AccessMode(..), ValidWikiName, validateWikiName, Wiki(..), exampleWiki
+  ) where
 
 import Text.Regex (Regex, mkRegex, matchRegex)
 
