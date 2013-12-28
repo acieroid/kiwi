@@ -26,6 +26,7 @@ a unique wiki identifier. This prefix has the following suffixes:
   - =access=: "+r+w" or "+r-w", "-r-w", respectively for a public wiki
     (read and write for everybody), a wiki with writes protected by a
     password, and a wiki with reads and writes protected by a password.
+  - =date=: date of creation of this wiki
 
 Each page of a wiki is thus stored under =page.<pid>= where =<pid>=
 is a unique page identifier. The keys under this prefix are:
@@ -41,7 +42,8 @@ By default, each wiki has an page named =index= pre-filled.
 Also, for simplicity reasons, the prefixes =hashes= (resp.
 =wiki.<wid>.hashes=) contains keys equal to the hash of the wiki name
 (resp. page name), associated with the unique identifier of this wiki
-(resp. page).
+(resp. page). =wiki.nextwid= and =wiki.<wid>.pages.nextpid= contains
+the next value for this unique identifier.
 
 * API
 ** Add a wiki

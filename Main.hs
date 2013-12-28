@@ -1,5 +1,7 @@
+import Kiwi.Storage
 import Kiwi.Data
 import Kiwi.Render
 
 main :: IO ()
-main = render "/tmp/" exampleWiki
+main = putStrLn $ show getPageNames (validateWikiName "foo")
+  -- render "/tmp/" exampleWiki
