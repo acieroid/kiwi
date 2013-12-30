@@ -3,5 +3,6 @@ import Kiwi.Data
 import Kiwi.Render
 
 main :: IO ()
-main = putStrLn $ show getPageNames (validateWikiName "foo")
+main = maybe (return ())
+       (\wname -> getPageNames wname >>= putStrLn . show) (validateWikiName "foo")
   -- render "/tmp/" exampleWiki
