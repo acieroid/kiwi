@@ -8,6 +8,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Maybe
+import Debug.Trace
 import Data.Time.LocalTime
 import Database.Redis (connect, ConnectInfo, defaultConnectInfo,
                        get, set, incr, Redis, RedisCtx, runRedis,
@@ -73,19 +74,24 @@ getPageNames name = do
     case wid of
       Right w -> f w
       Left err -> return $ Left err
-  where pname :: Integer -> Integer -> Redis (Either Reply String)
+  where pname :: Integer -> Integer -> Redis (Either Reply (Maybe String))
         pname wid pid = do
                       n <- get $ BS.pack $
                            "wiki." ++ show wid ++ ".pages." ++ show pid ++ ".name"
-                      return $ maybe "" BS.unpack <$> n
+                      return $ maybe Nothing (return . BS.unpack) <$> n
         aux :: Integer -> Integer -> Redis (Either Reply [String])
         aux wid pid = do
                       pn <- pname wid pid
-                      rest <- aux wid (succ pid)
-                      return $ pure (:) <*> pn <*> rest
+                      case pn of
+                        Right (Just pn) ->
+                            do rest <- aux wid (succ pid)
+                               return $ pure (pn:) <*> rest
+                        Right Nothing -> return $ Right []
+                        Left err -> return $ Left err
 
 addWiki :: ValidWikiName -> IO Result
 addWiki name = do
+  -- TODO: check that no wiki with this name already exists
   conn <- connect connectInfo
   date <- getZonedTime
   fmap ret $ runRedis conn $ do

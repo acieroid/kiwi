@@ -3,6 +3,10 @@ import Kiwi.Data
 import Kiwi.Render
 
 main :: IO ()
-main = maybe (return ())
-       (\wname -> getPageNames wname >>= putStrLn . show) (validateWikiName "foo")
+main = do
+  let wiki = validateWikiName "foo"
+  maybe (return ())
+        (\wiki -> addWiki wiki >>
+                  getPageNames wiki >>=
+                  putStrLn . show) wiki
   -- render "/tmp/" exampleWiki
