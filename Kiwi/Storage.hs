@@ -19,12 +19,11 @@ import Kiwi.Data
 data Result = Success
             | PasswordProtected
             | WrongPassword
-            | PageDontExists
-            | WikiDontExists
+            | PageDoesNotExists
+            | WikiDoesNotExists
             | AlreadyExists
             | ReturnPage Page
             | ReturnPageNames [ValidPageName]
-            | InvalidDatabase
             | Error String
             deriving (Show, Eq)
 
@@ -68,7 +67,7 @@ getPageNames name = do
   fmap ret $ runRedis conn $ do
     (wid :: Either Reply (Maybe Integer)) <- getWikiId name
     let f :: Maybe Integer -> Redis (Either Reply Result)
-        f = maybe (return $ (return WikiDontExists))
+        f = maybe (return $ (return WikiDoesNotExists))
                       (\wid -> do res <- aux wid 0
                                   return $ fmap (ReturnPageNames . mapMaybe validatePageName) res)
     case wid of
@@ -136,7 +135,7 @@ editPage name page = do
           ".latest" ==> show version
           return $ Right Success
     case wid of
-      Right Nothing -> return $ Right WikiDontExists
+      Right Nothing -> return $ Right WikiDoesNotExists
       Right (Just wid') ->
           do (pid :: Either Reply (Maybe Integer)) <- getPageId wid' (pName page)
              (pid' :: Either Reply Integer) <- case pid of
@@ -155,11 +154,11 @@ getPage wname pname = do
     -- Looks like this need some kind of refactoring
     wid <- getWikiId wname
     case wid of
-      Right Nothing -> return $ Right WikiDontExists
+      Right Nothing -> return $ Right WikiDoesNotExists
       Right (Just wid) ->
           do pid <- getPageId wid pname
              case pid of
-               Right Nothing -> return $ Right PageDontExists
+               Right Nothing -> return $ Right PageDoesNotExists
                Right (Just pid) ->
                    do let prefix = "wiki." ++ show wid ++ ".pages." ++ show pid
                       let build :: Maybe BS.ByteString -> Maybe BS.ByteString -> Result

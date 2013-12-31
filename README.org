@@ -47,10 +47,11 @@ the next value for this unique identifier.
 
 * API
 ** Add a wiki
-  - URI: =/wiki=
+  - URI: =/wiki/<name>=
   - Method: =POST=
   - Return codes:
     - 201 and the wiki URI in case of success
+    - 400 if the wiki page name is invalid
     - 409 if the wiki page name is already taken
 
 ** Get a wiki page
