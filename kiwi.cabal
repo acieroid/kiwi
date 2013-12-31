@@ -20,6 +20,7 @@ executable kiwi
   main-is:             Main.hs
   other-modules:       Kiwi.Data
                        Kiwi.Render
+                       Kiwi.Storage
   -- other-extensions:    
   build-depends:       base >=4.6 && <4.7
                        , containers
@@ -36,4 +37,30 @@ executable kiwi
                        , cryptohash
                        , transformers
   -- hs-source-dirs:      
+  default-language:    Haskell2010
+
+executable api
+  main-is:             API.hs
+  other-modules:       Kiwi.Data
+                       Kiwi.Storage
+  build-depends:       base >=4.6 && <4.7
+                       , containers
+                       , pandoc
+                       , blaze-markup
+                       , regex-compat
+                       , text
+                       , directory
+                       , filepath
+                       , blaze-html
+                       , bytestring
+                       , hedis
+                       , time
+                       , cryptohash
+                       , transformers
+                       , wai
+                       , warp
+                       , http-types
+                       , enumerator
+                       , utf8-string
+                       , blaze-builder
   default-language:    Haskell2010
