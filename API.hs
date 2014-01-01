@@ -1,10 +1,13 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 import Blaze.ByteString.Builder (fromLazyByteString)
-import qualified Data.ByteString.UTF8 as BU
-import Data.Monoid (mconcat)
 import Data.Aeson
+import qualified Data.ByteString.UTF8 as BU
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import Data.Monoid (mconcat)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404)
@@ -132,8 +135,9 @@ getWikiPage wname pname =
 editWikiPage :: String -> String -> Request -> IO Response
 editWikiPage wname pname req = do
   content <- lazyRequestBody req
-  withPageName (\w p -> S.editPage w (Page { pVersion = 0
-                                           , pName = p
-                                             -- TODO: s/String/ByteString in Data.hs
-                                           , pContent = show content }))
+  let strictContent = B.concat $ BL.toChunks content
+  withPageName (\w p -> S.editPage w 
+                        (Page { pVersion = 0
+                              , pName = p
+                              , pContent = TE.decodeUtf8 strictContent }))
                wname pname

@@ -3,6 +3,7 @@ module Kiwi.Render where
 
 import Control.Monad (forM_)
 import qualified Data.Set as Set
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.IO as TextIO
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath.Posix ((</>), FilePath)
@@ -38,7 +39,7 @@ wikiPage page =
     H.h1 $ H.toHtml $ name
     content
   where name = show $ pName page
-        content = writeHtml def $ readMarkdown def $ pContent page
+        content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
 
 -- | A wiki page is renrderable
 instance Renderable Page where

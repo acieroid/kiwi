@@ -1,8 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Kiwi.Data (
   ValidPageName, validatePageName, Page(..), examplePage,
   AccessMode(..), ValidWikiName, validateWikiName, Wiki(..), exampleWiki
   ) where
 
+import qualified Data.Text as T
 import Text.Regex (Regex, mkRegex, matchRegex)
 
 -- | An opaque type representing a valid name of a page (that
@@ -27,9 +30,9 @@ data Page = Page {
     pVersion :: Int        -- ^ Version number of this version of the page
   , pName :: ValidPageName -- ^ Name of the page
     -- TODO: validate page contents
-  , pContent :: String     -- ^ Raw content of the page
+  , pContent :: T.Text     -- ^ Raw content of the page
   }
-          deriving (Show, Eq)
+            deriving (Show, Eq)
 
 -- | Example page
 examplePage :: Page
@@ -68,7 +71,7 @@ data Wiki = Wiki {
     wName :: ValidWikiName            -- ^ Name of the wiki
   , wPages :: [(ValidPageName, Page)] -- ^ Pages contained in this wiki
   , wAccess :: AccessMode             -- ^ Access mode of this wiki
-  , wPassword :: Maybe String         -- ^ Password protecting this wiki
+  , wPassword :: Maybe T.Text         -- ^ Password protecting this wiki
   }
           deriving (Show, Eq)
 

@@ -7,6 +7,8 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder (toLazyByteString, stringUtf8)
 import Data.ByteString.Lazy.Builder.ASCII (lazyByteStringHexFixed)
 import Data.ByteString.Internal (c2w, w2c)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Crypto.Hash.SHA1 as SHA1
 import Control.Applicative
 import Control.Monad
@@ -138,11 +140,12 @@ editPage name page = do
         editPage' wid pid = do
           let prefix = "wiki." ++ (show wid) ++ ".pages." ++ (show pid)
           let (==>) suffix value = set (BS.pack $ prefix ++ suffix) (BS.pack value)
+          let (==>>) suffix value = set (BS.pack $ prefix ++ suffix) (TE.encodeUtf8 value)
           version <- nextPageVersion wid pid
           case version of
             Right v ->
                 do ".name" ==> show (pName page)
-                   (".version." ++ show v ++ ".content") ==> pContent page
+                   (".version." ++ show v ++ ".content") ==>> pContent page
                    (".version." ++ show v ++ ".date") ==> show date
                    ".current" ==> show v
                    ".latest" ==> show v
@@ -177,7 +180,7 @@ getPage wname pname = do
                    do let prefix = "wiki." ++ show wid ++ ".pages." ++ show pid
                       let build :: Int -> Maybe BS.ByteString -> Result
                           build version content =
-                              let c = maybe "" BS.unpack content in
+                              let c = maybe T.empty TE.decodeUtf8 content in
                               ReturnPage (Page
                                           { pVersion = version
                                           , pName = pname
