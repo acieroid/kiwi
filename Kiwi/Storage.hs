@@ -56,7 +56,7 @@ getWikiId name = do
 
 getPageId :: Functor f => RedisCtx m f => Integer -> ValidPageName -> m (f (Maybe Integer))
 getPageId wid name = do
-  pid <- get (BS.pack $ "wiki." ++ show wid ++ ".hashes." ++ (hash $ show name))
+  pid <- get (BS.pack $ "wiki." ++ show wid ++ ".pages.hashes." ++ (hash $ show name))
   return $ fmap (read . BS.unpack) <$> pid
 
 increaseWikiId :: RedisCtx m f => m (f Integer)
