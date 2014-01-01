@@ -2,9 +2,9 @@
 -- TODO: this module really needs some refactoring
 module Kiwi.Storage where
 
-import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.UTF8 as BSU
 import qualified Data.ByteString.Lazy as BSL
-import Data.ByteString.Lazy.Builder (toLazyByteString, stringUtf8)
+import Data.ByteString.Lazy.Builder (toLazyByteString, byteString)
 import Data.ByteString.Lazy.Builder.ASCII (lazyByteStringHexFixed)
 import Data.ByteString.Internal (c2w, w2c)
 import qualified Data.Text as T
@@ -38,8 +38,8 @@ hash s =
     -- TODO: this is really ugly way to convert the bytestring
     -- returned by SHA1.hash into an hexadecimal representation
     map w2c $ BSL.unpack hashed
-    where rawHash = BS.unpack $ SHA1.hash $ BS.pack s
-          bsHash = toLazyByteString $ stringUtf8 rawHash
+    where rawHash = SHA1.hash $ BSU.fromString s
+          bsHash = toLazyByteString $ byteString rawHash
           hex = lazyByteStringHexFixed bsHash
           hashed = toLazyByteString hex
 
@@ -48,26 +48,26 @@ connectInfo = defaultConnectInfo
 
 nextPageVersion :: Functor f => RedisCtx m f => Integer -> Integer -> m (f Integer)
 nextPageVersion wid pid = do
-  latest <- get (BS.pack $ "wiki." ++ show wid ++ ".pages." ++ show pid ++ ".latest")
-  return $ maybe 0 ((1+) . read. BS.unpack) <$> latest
+  latest <- get (BSU.fromString $ "wiki." ++ show wid ++ ".pages." ++ show pid ++ ".latest")
+  return $ maybe 0 ((1+) . read. BSU.toString) <$> latest
 
 getWikiId :: Functor f => RedisCtx m f => ValidWikiName -> m (f (Maybe Integer))
 getWikiId name = do
-  wid <- get (BS.pack $ "wiki.hashes." ++ (hash $ show name))
-  return $ fmap (read . BS.unpack) <$> wid
+  wid <- get (BSU.fromString $ "wiki.hashes." ++ (hash $ show name))
+  return $ fmap (read . BSU.toString) <$> wid
 
 getPageId :: Functor f => RedisCtx m f => Integer -> ValidPageName -> m (f (Maybe Integer))
 getPageId wid name = do
-  pid <- get (BS.pack $ "wiki." ++ show wid ++ ".pages.hashes." ++ (hash $ show name))
-  return $ fmap (read . BS.unpack) <$> pid
+  pid <- get (BSU.fromString $ "wiki." ++ show wid ++ ".pages.hashes." ++ (hash $ show name))
+  return $ fmap (read . BSU.toString) <$> pid
 
 increaseWikiId :: Functor f => RedisCtx m f => m (f Integer)
 increaseWikiId =
-  incr (BS.pack $ "wiki.nextwid") >>= (return . fmap pred)
+  incr (BSU.fromString $ "wiki.nextwid") >>= (return . fmap pred)
 
 increasePageId :: Functor f => RedisCtx m f => Integer -> m (f Integer)
 increasePageId wid =
-  incr (BS.pack $ "wiki." ++ show wid ++ ".pages.nextpid") >>= (return . fmap pred)
+  incr (BSU.fromString $ "wiki." ++ show wid ++ ".pages.nextpid") >>= (return . fmap pred)
 
 -- TODO: generalize to Functor instead of Either Reply
 ret :: Either Reply Result -> Result
@@ -88,9 +88,9 @@ getPageNames name = do
       Left err -> return $ Left err
   where pname :: Integer -> Integer -> Redis (Either Reply (Maybe String))
         pname wid pid = do
-                      n <- get $ BS.pack $
+                      n <- get $ BSU.fromString $
                            "wiki." ++ show wid ++ ".pages." ++ show pid ++ ".name"
-                      return $ maybe Nothing (return . BS.unpack) <$> n
+                      return $ maybe Nothing (return . BSU.toString) <$> n
         aux :: Integer -> Integer -> Redis (Either Reply [String])
         aux wid pid = do
                       pn <- pname wid pid
@@ -112,7 +112,7 @@ addWiki name = do
         f wid = do let prefix :: String
                        prefix = "wiki." ++ show wid
                    let s :: String -> String -> Redis (Either Reply Status)
-                       s k v = set (BS.pack k) (BS.pack v)
+                       s k v = set (BSU.fromString k) (BSU.fromString v)
                    let (==>) :: String -> String -> Redis (Either Reply Status)
                        (==>) suffix value = s (prefix ++ suffix) value
                    s ("wiki.hashes." ++ (hash $ show name)) (show wid)
@@ -139,8 +139,8 @@ editPage name page = do
     let editPage' :: Integer -> Integer -> Redis (Either Reply Result)
         editPage' wid pid = do
           let prefix = "wiki." ++ (show wid) ++ ".pages." ++ (show pid)
-          let (==>) suffix value = set (BS.pack $ prefix ++ suffix) (BS.pack value)
-          let (==>>) suffix value = set (BS.pack $ prefix ++ suffix) (TE.encodeUtf8 value)
+          let (==>) suffix value = set (BSU.fromString $ prefix ++ suffix) (BSU.fromString value)
+          let (==>>) suffix value = set (BSU.fromString $ prefix ++ suffix) (TE.encodeUtf8 value)
           version <- nextPageVersion wid pid
           case version of
             Right v ->
@@ -178,19 +178,19 @@ getPage wname pname = do
                Right Nothing -> return $ Right PageDoesNotExists
                Right (Just pid) ->
                    do let prefix = "wiki." ++ show wid ++ ".pages." ++ show pid
-                      let build :: Int -> Maybe BS.ByteString -> Result
+                      let build :: Int -> Maybe BSU.ByteString -> Result
                           build version content =
                               let c = maybe T.empty TE.decodeUtf8 content in
                               ReturnPage (Page
                                           { pVersion = version
                                           , pName = pname
                                           , pContent = c })
-                      version <- get $ BS.pack $ prefix ++ ".current"
+                      version <- get $ BSU.fromString $ prefix ++ ".current"
                       let v = case version of
-                                Right (Just x) -> read $ BS.unpack x
+                                Right (Just x) -> read $ BSU.toString x
                                 -- Should probably transmit the error if Left
                                 _ -> 0
-                      content <- get $ BS.pack $ prefix ++ ".version." ++ show v ++ ".content"
+                      content <- get $ BSU.fromString $ prefix ++ ".version." ++ show v ++ ".content"
                       return $ pure (build v) <*> content
                Left err -> return $ Left err
       Left err -> return $ Left err
