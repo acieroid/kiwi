@@ -20,7 +20,7 @@ main = do
 
 app :: Application
 app req =
-    case (requestMethod req, pathInfo req) of
+    case (requestMethod req, dropEmpty $ pathInfo req) of
         ("GET", ["help"]) -> return help
         ("GET", ["about"]) -> return about
         ("POST", ["wiki", wname]) -> addWiki (T.unpack wname) req
@@ -28,6 +28,8 @@ app req =
         ("GET", ["wiki", wname, pname]) -> getWikiPage (T.unpack wname) (T.unpack pname)
         ("POST", ["wiki", wname, pname]) -> editWikiPage (T.unpack wname) (T.unpack pname) req
         _ -> return notFound
+    where dropEmpty :: [T.Text] -> [T.Text]
+          dropEmpty = filter (not . T.null)
 
 headers :: ResponseHeaders
 headers = [("Content-Type", "application/json")]
