@@ -3,6 +3,10 @@
 module Kiwi.Storage where
 
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy as BSL
+import Data.ByteString.Lazy.Builder (toLazyByteString, stringUtf8)
+import Data.ByteString.Lazy.Builder.ASCII (lazyByteStringHexFixed)
+import Data.ByteString.Internal (c2w, w2c)
 import qualified Crypto.Hash.SHA1 as SHA1
 import Control.Applicative
 import Control.Monad
@@ -28,7 +32,14 @@ data Result = Success
             deriving (Show, Eq)
 
 hash :: String -> String
-hash s = BS.unpack $ SHA1.hash $ BS.pack s
+hash s =
+    -- TODO: this is really ugly way to convert the bytestring
+    -- returned by SHA1.hash into an hexadecimal representation
+    map w2c $ BSL.unpack hashed
+    where rawHash = BS.unpack $ SHA1.hash $ BS.pack s
+          bsHash = toLazyByteString $ stringUtf8 rawHash
+          hex = lazyByteStringHexFixed bsHash
+          hashed = toLazyByteString hex
 
 connectInfo :: ConnectInfo
 connectInfo = defaultConnectInfo
