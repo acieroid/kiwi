@@ -98,14 +98,20 @@ help = notImplemented -- TODO
 about :: Response
 about = notImplemented -- TODO
 
-addWiki :: String -> Request -> IO Response
-addWiki wname req =
-    maybe (return $ build statusInvalidName ("Invalid wiki name: " ++ wname))
-          (\name -> S.addWiki name >>= (return . buildResult))
+withWikiName :: (ValidWikiName -> IO S.Result) -> String -> IO Response
+withWikiName action wname =
+    maybe (return $ build statusInvalidName $
+                  failure ("Invalid wiki name: " ++ wname))
+          (\name -> action name >>= (return . buildResult))
           (validateWikiName wname)
 
+addWiki :: String -> Request -> IO Response
+addWiki wname req =
+    withWikiName S.addWiki wname
+
 getWikiPages :: String -> IO Response
-getWikiPages wname = return notImplemented -- TODO
+getWikiPages wname =
+    withWikiName S.getPageNames wname
 
 getWikiPage :: String -> String -> IO Response
 getWikiPage wname pname = return notImplemented -- TODO
