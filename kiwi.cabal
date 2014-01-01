@@ -63,4 +63,5 @@ executable api
                        , enumerator
                        , utf8-string
                        , blaze-builder
+                       , aeson
   default-language:    Haskell2010

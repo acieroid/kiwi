@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Blaze.ByteString.Builder (copyByteString)
-import Data.Monoid
-import qualified Data.Text as T
+import Blaze.ByteString.Builder (fromLazyByteString)
 import qualified Data.ByteString.UTF8 as BU
+import Data.Monoid (mconcat)
+import Data.Aeson
+import qualified Data.Text as T
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404)
@@ -29,7 +30,7 @@ app req =
         _ -> return notFound
 
 headers :: ResponseHeaders
-headers = [("Content-Type", "text/plain")]
+headers = [("Content-Type", "application/json")]
 
 statusInvalidName :: Status
 statusInvalidName =
@@ -46,36 +47,50 @@ statusAlreadyExists =
     Status { statusCode = 409
            , statusMessage = "Already Exists" }
 
-build :: Status -> String -> Response
+build :: ToJSON a => Status -> a -> Response
 build status response =
-    responseBuilder status headers $
-                    mconcat $ map copyByteString [BU.fromString response]
+    responseBuilder status headers $ fromLazyByteString $ encode response
+
+instance ToJSON Page where
+    toJSON page = object [ "version" .= (show $ pVersion page)
+                         , "name" .= (show $ pName page)
+                         , "content" .= pContent page ]
+
+instance ToJSON ValidPageName where
+    toJSON = toJSON . show
+
+success :: Value
+success = object ["result" .= ("success" :: String)]
+
+failure :: String -> Value
+failure reason = object [ "result" .= ("failure" :: String)
+                        , "reason" .= reason ] 
 
 buildResult :: S.Result -> Response
 buildResult S.Success =
-    build status200 "Success"
+    build status200 success
 buildResult S.PasswordProtected =
-    build statusPasswordProtected "Missing Password"
+    build statusPasswordProtected $ failure "Missing Password"
 buildResult S.WrongPassword =
-    build statusPasswordProtected "Incorrect Password"
+    build statusPasswordProtected $ failure "Incorrect Password"
 buildResult S.PageDoesNotExists =
-    build status404 "Page Not Found"
+    build status404 $ failure "Page Not Found"
 buildResult S.WikiDoesNotExists =
-    build status404 "Wiki Not Found"
+    build status404 $ failure "Wiki Not Found"
 buildResult S.AlreadyExists =
-    build statusAlreadyExists "Already Exists"
+    build statusAlreadyExists $ failure "Already Exists"
 buildResult (S.ReturnPage page) =
-    error "TODO"
+    build status200 page
 buildResult (S.ReturnPageNames names) =
-    error "TODO"
+    build status200 names
 buildResult (S.Error err) =
     error err -- TODO
 
 notFound :: Response
-notFound = build status404 "Not Found"
+notFound = build status404 $ failure "Not Found"
 
 notImplemented :: Response
-notImplemented = build status404 "Not Implemented (...yet)"
+notImplemented = build status404 $ failure "Not Implemented (...yet)"
 
 help :: Response
 help = notImplemented -- TODO
