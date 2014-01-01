@@ -139,11 +139,14 @@ editPage name page = do
           let prefix = "wiki." ++ (show wid) ++ ".pages." ++ (show pid)
           let (==>) suffix value = set (BS.pack $ prefix ++ suffix) (BS.pack value)
           version <- nextPageVersion wid pid
-          ".name" ==> show (pName page)
-          (".version." ++ show version ++ ".content") ==> pContent page
-          (".version." ++ show version ++ ".date") ==> show date
-          ".current" ==> show version
-          ".latest" ==> show version
+          case version of
+            Right v ->
+                do ".name" ==> show (pName page)
+                   (".version." ++ show v ++ ".content") ==> pContent page
+                   (".version." ++ show v ++ ".date") ==> show date
+                   ".current" ==> show v
+                   ".latest" ==> show v
+            Left err -> return $ Left err
           return $ Right Success
     case wid of
       Right Nothing -> return $ Right WikiDoesNotExists

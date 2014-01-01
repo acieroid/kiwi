@@ -130,4 +130,10 @@ getWikiPage wname pname =
     withPageName S.getPage wname pname
 
 editWikiPage :: String -> String -> Request -> IO Response
-editWikiPage wname pname req = return notImplemented -- TODO
+editWikiPage wname pname req = do
+  content <- lazyRequestBody req
+  withPageName (\w p -> S.editPage w (Page { pVersion = 0
+                                           , pName = p
+                                             -- TODO: s/String/ByteString in Data.hs
+                                           , pContent = show content }))
+               wname pname
