@@ -59,13 +59,13 @@ getPageId wid name = do
   pid <- get (BS.pack $ "wiki." ++ show wid ++ ".pages.hashes." ++ (hash $ show name))
   return $ fmap (read . BS.unpack) <$> pid
 
-increaseWikiId :: RedisCtx m f => m (f Integer)
+increaseWikiId :: Functor f => RedisCtx m f => m (f Integer)
 increaseWikiId =
-  incr (BS.pack $ "wiki.nextwid")
+  incr (BS.pack $ "wiki.nextwid") >>= (return . fmap pred)
 
 increasePageId :: Functor f => RedisCtx m f => Integer -> m (f Integer)
 increasePageId wid =
-  incr (BS.pack $ "wiki." ++ show wid ++ ".pages.nextpid")
+  incr (BS.pack $ "wiki." ++ show wid ++ ".pages.nextpid") >>= (return . fmap pred)
 
 -- TODO: generalize to Functor instead of Either Reply
 ret :: Either Reply Result -> Result
@@ -117,7 +117,7 @@ addWiki name = do
                    ".name" ==> show name
                    ".date" ==> show date
                    ".pages.nextpid" ==> "1"
-                   (".pages.hashes." ++ (hash "index")) ==> "1"
+                   (".pages.hashes." ++ (hash "index")) ==> "0"
                    ".pages.0.name" ==> "index"
                    ".pages.0.version.0.content" ==> "Hello!"
                    ".pages.0.version.0.date" ==> show date
@@ -172,16 +172,19 @@ getPage wname pname = do
                Right Nothing -> return $ Right PageDoesNotExists
                Right (Just pid) ->
                    do let prefix = "wiki." ++ show wid ++ ".pages." ++ show pid
-                      let build :: Maybe BS.ByteString -> Maybe BS.ByteString -> Result
+                      let build :: Int -> Maybe BS.ByteString -> Result
                           build version content =
-                              let v = maybe 0 (read . BS.unpack) version
-                                  c = maybe "" BS.unpack content in
+                              let c = maybe "" BS.unpack content in
                               ReturnPage (Page
-                                          { pVersion = v
+                                          { pVersion = version
                                           , pName = pname
                                           , pContent = c })
                       version <- get $ BS.pack $ prefix ++ ".version"
-                      content <- get $ BS.pack $ prefix ++ ".content"
-                      return $ pure build <*> version <*> content
+                      let v = case version of
+                                Right (Just x) -> read $ BS.unpack x
+                                -- Should probably transmit the error if Left
+                                _ -> 0
+                      content <- get $ BS.pack $ prefix ++ ".version." ++ show v ++ ".content"
+                      return $ pure (build v) <*> content
                Left err -> return $ Left err
       Left err -> return $ Left err
