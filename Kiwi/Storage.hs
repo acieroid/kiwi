@@ -182,7 +182,7 @@ getPage wname pname = do
                                           { pVersion = version
                                           , pName = pname
                                           , pContent = c })
-                      version <- get $ BS.pack $ prefix ++ ".version"
+                      version <- get $ BS.pack $ prefix ++ ".current"
                       let v = case version of
                                 Right (Just x) -> read $ BS.unpack x
                                 -- Should probably transmit the error if Left
