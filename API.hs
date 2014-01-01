@@ -105,6 +105,16 @@ withWikiName action wname =
           (\name -> action name >>= (return . buildResult))
           (validateWikiName wname)
 
+withPageName :: (ValidWikiName -> ValidPageName -> IO S.Result) -> String -> String -> IO Response
+withPageName action wname pname =
+    maybe (return $ build statusInvalidName $
+                  failure ("Invalid wiki name: " ++ wname))
+          (\w -> maybe (return $ build statusInvalidName $
+                               failure ("Invalid page name: " ++ pname))
+                       (\p -> action w p >>= (return . buildResult))
+                       (validatePageName pname))
+          (validateWikiName wname)
+
 addWiki :: String -> Request -> IO Response
 addWiki wname req =
     withWikiName S.addWiki wname
@@ -114,7 +124,8 @@ getWikiPages wname =
     withWikiName S.getPageNames wname
 
 getWikiPage :: String -> String -> IO Response
-getWikiPage wname pname = return notImplemented -- TODO
+getWikiPage wname pname =
+    withPageName S.getPage wname pname
 
 editWikiPage :: String -> String -> Request -> IO Response
 editWikiPage wname pname req = return notImplemented -- TODO
