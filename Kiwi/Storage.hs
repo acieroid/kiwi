@@ -1,6 +1,8 @@
 {-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
 -- TODO: this module really needs some refactoring
-module Kiwi.Storage where
+module Kiwi.Storage (
+  addWiki, editPage, getPage, getPageNames, Result(..)
+  ) where
 
 import qualified Data.ByteString.UTF8 as BSU
 import qualified Data.ByteString.Lazy as BSL
@@ -10,12 +12,9 @@ import Data.ByteString.Internal (c2w, w2c)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Crypto.Hash.SHA1 as SHA1
-import Control.Applicative
-import Control.Monad
-import Control.Monad.IO.Class
-import Data.Maybe
-import Debug.Trace
-import Data.Time.LocalTime
+import Control.Applicative ((<$>), (<*>), pure)
+import Data.Maybe (mapMaybe)
+import Data.Time.LocalTime (getZonedTime)
 import Database.Redis (connect, ConnectInfo, defaultConnectInfo,
                        get, set, incr, Redis, RedisCtx, runRedis,
                        Reply, Status)
@@ -33,6 +32,8 @@ data Result = Success
             | Error String
             deriving (Show, Eq)
 
+-- | Hash a name, returning its SHA-1 hash encoded in an hexadecimal
+-- string
 hash :: String -> String
 hash s =
     -- TODO: this is really ugly way to convert the bytestring
@@ -43,44 +44,56 @@ hash s =
           hex = lazyByteStringHexFixed bsHash
           hashed = toLazyByteString hex
 
+-- | Encode a bunch of strings into a bytestring
 enc :: [String] -> BSU.ByteString
 enc = TE.encodeUtf8 . T.concat . map T.pack
 
+-- | Information to connect to the Redis server
 connectInfo :: ConnectInfo
 connectInfo = defaultConnectInfo
 
+-- | Get the next version of a wiki page
 nextPageVersion :: Functor f => RedisCtx m f => Integer -> Integer -> m (f Integer)
 nextPageVersion wid pid = do
   latest <- get $ enc ["wiki.", show wid, ".pages.", show pid, ".latest"]
   return $ maybe 0 ((1+) . read. BSU.toString) <$> latest
 
+-- | Get the id of a wiki, given its name
 getWikiId :: Functor f => RedisCtx m f => ValidWikiName -> m (f (Maybe Integer))
 getWikiId name = do
   wid <- get $ enc ["wiki.hashes.", (hash $ show name)]
   return $ fmap (read . BSU.toString) <$> wid
 
+-- | Get the id of a wiki page, given its name
 getPageId :: Functor f => RedisCtx m f => Integer -> ValidPageName -> m (f (Maybe Integer))
 getPageId wid name = do
   pid <- get $ enc ["wiki.", show wid, ".pages.hashes.", (hash $ show name)]
   return $ fmap (read . BSU.toString) <$> pid
 
+-- | Increase the id that will be used for the next wiki, and return
+-- its previous value
 increaseWikiId :: Functor f => RedisCtx m f => m (f Integer)
 increaseWikiId =
   incr "wiki.nextwid" >>= (return . fmap pred)
 
+-- | Increase the id that will be used for the next page for a given
+-- wiki, and return its previous value
 increasePageId :: Functor f => RedisCtx m f => Integer -> m (f Integer)
 increasePageId wid =
   incr (enc ["wiki.", show wid, ".pages.nextpid"]) >>= (return . fmap pred)
 
+-- | Check if a wiki exists
 doesWikiExists :: Functor f => RedisCtx m f => ValidWikiName -> m (f Bool)
 doesWikiExists name = do
   wid <- getWikiId name
   return $ fmap (maybe False (\_ -> True)) wid
 
+-- | Extract the errors from an Either and put it inside a Result
 ret :: Either Reply Result -> Result
 ret (Right x) = x
 ret (Left err) = Error (show err)
 
+-- | Return the list of page names for a wiki
 getPageNames :: ValidWikiName -> IO Result
 getPageNames name = do
   conn <- connect connectInfo
@@ -107,9 +120,9 @@ getPageNames name = do
                         Right Nothing -> return $ Right []
                         Left err -> return $ Left err
 
+-- | Create a new wiki, if it does not exists yet
 addWiki :: ValidWikiName -> IO Result
 addWiki name = do
-  -- TODO: check that no wiki with this name already exists
   conn <- connect connectInfo
   date <- getZonedTime
   fmap ret $ runRedis conn $ do
@@ -141,6 +154,7 @@ addWiki name = do
             Left err -> return $ Left err
       Left err -> return $ Left err
 
+-- | Edit a wiki page
 editPage :: ValidWikiName -> Page -> IO Result
 editPage name page = do
   conn <- connect connectInfo
@@ -175,11 +189,11 @@ editPage name page = do
                Left err -> return $ Left err
       Left err -> return $ Left err
 
+-- | Get the latest version of a wiki page
 getPage :: ValidWikiName -> ValidPageName -> IO Result
 getPage wname pname = do
   conn <- connect connectInfo
   fmap ret $ runRedis conn $ do
-    -- Looks like this need some kind of refactoring
     wid <- getWikiId wname
     case wid of
       Right Nothing -> return $ Right WikiDoesNotExists
