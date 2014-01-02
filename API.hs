@@ -10,7 +10,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Network.Wai
 import Network.Wai.Handler.Warp
-import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404)
+import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404, status500)
 
 import Kiwi.Data
 import qualified Kiwi.Storage as S
@@ -89,7 +89,7 @@ buildResult (S.ReturnPage page) =
 buildResult (S.ReturnPageNames names) =
     build status200 names
 buildResult (S.Error err) =
-    error err -- TODO
+    build status500 $ failure $ T.pack err
 
 notFound :: Response
 notFound = build status404 $ failure "Not Found"
