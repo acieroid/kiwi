@@ -10,20 +10,20 @@ import Text.Regex (Regex, mkRegex, matchRegex)
 
 -- | An opaque type representing a valid name of a page (that
 -- can be used in an URL)
-data ValidPageName = ValidPageName String
+data ValidPageName = ValidPageName T.Text
                deriving Eq
 
 instance Show ValidPageName where
-  show (ValidPageName s) = s
+  show (ValidPageName s) = T.unpack s
 
 -- | Regex that valid page names should match
 validPageNameRegex :: Regex
 validPageNameRegex = mkRegex "^[a-zA-Z0-9/-]+$"
 
 -- | Construct a valid page name
-validatePageName :: String -> Maybe ValidPageName
+validatePageName :: T.Text -> Maybe ValidPageName
 validatePageName s =
-  matchRegex validPageNameRegex s >> Just (ValidPageName s)
+  matchRegex validPageNameRegex (T.unpack s) >> Just (ValidPageName s)
 
 -- | Represents a page of the wiki
 data Page = Page {
@@ -51,20 +51,20 @@ data AccessMode = ReadWrite     -- ^ Read and write for everybody
                 deriving (Show, Eq)
 
 -- | An opaque type representing a valid name of a wiki
-data ValidWikiName = ValidWikiName String
+data ValidWikiName = ValidWikiName T.Text
                deriving Eq
 
 instance Show ValidWikiName where
-  show (ValidWikiName s) = s
+  show (ValidWikiName s) = T.unpack s
 
 -- | Regex that valid wiki names should match
 validWikiNameRegex :: Regex
 validWikiNameRegex = mkRegex "^[a-zA-Z0-9-]+$"
 
 -- | Construct a valid wiki name
-validateWikiName :: String -> Maybe ValidWikiName
+validateWikiName :: T.Text -> Maybe ValidWikiName
 validateWikiName s =
-  matchRegex validWikiNameRegex s >> Just (ValidWikiName s)
+  matchRegex validWikiNameRegex (T.unpack s) >> Just (ValidWikiName s)
 
 -- | Represents a wiki
 data Wiki = Wiki {

@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
 -- TODO: this module really needs some refactoring
 module Kiwi.Storage where
 
@@ -43,33 +43,35 @@ hash s =
           hex = lazyByteStringHexFixed bsHash
           hashed = toLazyByteString hex
 
+enc :: [String] -> BSU.ByteString
+enc = TE.encodeUtf8 . T.concat . map T.pack
+
 connectInfo :: ConnectInfo
 connectInfo = defaultConnectInfo
 
 nextPageVersion :: Functor f => RedisCtx m f => Integer -> Integer -> m (f Integer)
 nextPageVersion wid pid = do
-  latest <- get (BSU.fromString $ "wiki." ++ show wid ++ ".pages." ++ show pid ++ ".latest")
+  latest <- get $ enc ["wiki.", show wid, ".pages.", show pid, ".latest"]
   return $ maybe 0 ((1+) . read. BSU.toString) <$> latest
 
 getWikiId :: Functor f => RedisCtx m f => ValidWikiName -> m (f (Maybe Integer))
 getWikiId name = do
-  wid <- get (BSU.fromString $ "wiki.hashes." ++ (hash $ show name))
+  wid <- get $ enc ["wiki.hashes.", (hash $ show name)]
   return $ fmap (read . BSU.toString) <$> wid
 
 getPageId :: Functor f => RedisCtx m f => Integer -> ValidPageName -> m (f (Maybe Integer))
 getPageId wid name = do
-  pid <- get (BSU.fromString $ "wiki." ++ show wid ++ ".pages.hashes." ++ (hash $ show name))
+  pid <- get $ enc ["wiki.", show wid, ".pages.hashes.", (hash $ show name)]
   return $ fmap (read . BSU.toString) <$> pid
 
 increaseWikiId :: Functor f => RedisCtx m f => m (f Integer)
 increaseWikiId =
-  incr (BSU.fromString $ "wiki.nextwid") >>= (return . fmap pred)
+  incr "wiki.nextwid" >>= (return . fmap pred)
 
 increasePageId :: Functor f => RedisCtx m f => Integer -> m (f Integer)
 increasePageId wid =
-  incr (BSU.fromString $ "wiki." ++ show wid ++ ".pages.nextpid") >>= (return . fmap pred)
+  incr (enc ["wiki.", show wid, ".pages.nextpid"]) >>= (return . fmap pred)
 
--- TODO: generalize to Functor instead of Either Reply
 ret :: Either Reply Result -> Result
 ret (Right x) = x
 ret (Left err) = Error (show err)
@@ -78,7 +80,7 @@ getPageNames :: ValidWikiName -> IO Result
 getPageNames name = do
   conn <- connect connectInfo
   fmap ret $ runRedis conn $ do
-    (wid :: Either Reply (Maybe Integer)) <- getWikiId name
+    wid <- getWikiId name
     let f :: Maybe Integer -> Redis (Either Reply Result)
         f = maybe (return $ (return WikiDoesNotExists))
                       (\wid -> do res <- aux wid 0
@@ -86,12 +88,11 @@ getPageNames name = do
     case wid of
       Right w -> f w
       Left err -> return $ Left err
-  where pname :: Integer -> Integer -> Redis (Either Reply (Maybe String))
+  where pname :: Integer -> Integer -> Redis (Either Reply (Maybe T.Text))
         pname wid pid = do
-                      n <- get $ BSU.fromString $
-                           "wiki." ++ show wid ++ ".pages." ++ show pid ++ ".name"
-                      return $ maybe Nothing (return . BSU.toString) <$> n
-        aux :: Integer -> Integer -> Redis (Either Reply [String])
+                      n <- get $ enc ["wiki.", show wid, ".pages.", show pid, ".name"]
+                      return $ maybe Nothing (return . TE.decodeUtf8) <$> n
+        aux :: Integer -> Integer -> Redis (Either Reply [T.Text])
         aux wid pid = do
                       pn <- pname wid pid
                       case pn of
@@ -185,12 +186,12 @@ getPage wname pname = do
                                           { pVersion = version
                                           , pName = pname
                                           , pContent = c })
-                      version <- get $ BSU.fromString $ prefix ++ ".current"
+                      version <- get $ enc [prefix, ".current"]
                       let v = case version of
                                 Right (Just x) -> read $ BSU.toString x
                                 -- Should probably transmit the error if Left
                                 _ -> 0
-                      content <- get $ BSU.fromString $ prefix ++ ".version." ++ show v ++ ".content"
+                      content <- get $ enc [prefix, ".version.", show v, ".content"]
                       return $ pure (build v) <*> content
                Left err -> return $ Left err
       Left err -> return $ Left err

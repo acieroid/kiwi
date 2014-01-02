@@ -26,10 +26,10 @@ app req =
     case (requestMethod req, dropEmpty $ pathInfo req) of
         ("GET", ["help"]) -> return help
         ("GET", ["about"]) -> return about
-        ("POST", ["wiki", wname]) -> addWiki (T.unpack wname) req
-        ("GET", ["wiki", wname]) -> getWikiPages (T.unpack wname)
-        ("GET", ["wiki", wname, pname]) -> getWikiPage (T.unpack wname) (T.unpack pname)
-        ("POST", ["wiki", wname, pname]) -> editWikiPage (T.unpack wname) (T.unpack pname) req
+        ("POST", ["wiki", wname]) -> addWiki wname req
+        ("GET", ["wiki", wname]) -> getWikiPages wname
+        ("GET", ["wiki", wname, pname]) -> getWikiPage wname pname
+        ("POST", ["wiki", wname, pname]) -> editWikiPage wname pname req
         _ -> return notFound
     where dropEmpty :: [T.Text] -> [T.Text]
           dropEmpty = filter (not . T.null)
@@ -65,10 +65,10 @@ instance ToJSON ValidPageName where
     toJSON = toJSON . show
 
 success :: Value
-success = object ["result" .= ("success" :: String)]
+success = object ["result" .= ("success" :: T.Text)]
 
-failure :: String -> Value
-failure reason = object [ "result" .= ("failure" :: String)
+failure :: T.Text -> Value
+failure reason = object [ "result" .= ("failure" :: T.Text)
                         , "reason" .= reason ] 
 
 buildResult :: S.Result -> Response
@@ -103,36 +103,36 @@ help = notImplemented -- TODO
 about :: Response
 about = notImplemented -- TODO
 
-withWikiName :: (ValidWikiName -> IO S.Result) -> String -> IO Response
+withWikiName :: (ValidWikiName -> IO S.Result) -> T.Text -> IO Response
 withWikiName action wname =
     maybe (return $ build statusInvalidName $
-                  failure ("Invalid wiki name: " ++ wname))
+                  failure $ T.concat ["Invalid wiki name: ", wname])
           (\name -> action name >>= (return . buildResult))
           (validateWikiName wname)
 
-withPageName :: (ValidWikiName -> ValidPageName -> IO S.Result) -> String -> String -> IO Response
+withPageName :: (ValidWikiName -> ValidPageName -> IO S.Result) -> T.Text -> T.Text -> IO Response
 withPageName action wname pname =
     maybe (return $ build statusInvalidName $
-                  failure ("Invalid wiki name: " ++ wname))
+                  failure $ T.concat ["Invalid wiki name: ", wname])
           (\w -> maybe (return $ build statusInvalidName $
-                               failure ("Invalid page name: " ++ pname))
+                               failure $ T.concat ["Invalid page name: ", pname])
                        (\p -> action w p >>= (return . buildResult))
                        (validatePageName pname))
           (validateWikiName wname)
 
-addWiki :: String -> Request -> IO Response
+addWiki :: T.Text -> Request -> IO Response
 addWiki wname req =
     withWikiName S.addWiki wname
 
-getWikiPages :: String -> IO Response
+getWikiPages :: T.Text -> IO Response
 getWikiPages wname =
     withWikiName S.getPageNames wname
 
-getWikiPage :: String -> String -> IO Response
+getWikiPage :: T.Text -> T.Text -> IO Response
 getWikiPage wname pname =
     withPageName S.getPage wname pname
 
-editWikiPage :: String -> String -> Request -> IO Response
+editWikiPage :: T.Text -> T.Text -> Request -> IO Response
 editWikiPage wname pname req = do
   content <- lazyRequestBody req
   let strictContent = B.concat $ BL.toChunks content
