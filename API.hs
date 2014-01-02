@@ -13,6 +13,7 @@ import Network.Wai.Handler.Warp
 import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404, status500)
 
 import Kiwi.Data
+import Kiwi.Serialization
 import qualified Kiwi.Storage as S
 
 main :: IO () 
@@ -55,14 +56,6 @@ statusAlreadyExists =
 build :: ToJSON a => Status -> a -> Response
 build status response =
     responseBuilder status headers $ fromLazyByteString $ encode response
-
-instance ToJSON Page where
-    toJSON page = object [ "version" .= (show $ pVersion page)
-                         , "name" .= (show $ pName page)
-                         , "content" .= pContent page ]
-
-instance ToJSON ValidPageName where
-    toJSON = toJSON . show
 
 success :: Value
 success = object ["result" .= ("success" :: T.Text)]
