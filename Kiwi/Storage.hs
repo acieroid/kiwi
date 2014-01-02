@@ -72,6 +72,11 @@ increasePageId :: Functor f => RedisCtx m f => Integer -> m (f Integer)
 increasePageId wid =
   incr (enc ["wiki.", show wid, ".pages.nextpid"]) >>= (return . fmap pred)
 
+doesWikiExists :: Functor f => RedisCtx m f => ValidWikiName -> m (f Bool)
+doesWikiExists name = do
+  wid <- getWikiId name
+  return $ fmap (maybe False (\_ -> True)) wid
+
 ret :: Either Reply Result -> Result
 ret (Right x) = x
 ret (Left err) = Error (show err)
@@ -108,27 +113,32 @@ addWiki name = do
   conn <- connect connectInfo
   date <- getZonedTime
   fmap ret $ runRedis conn $ do
-    wid <- increaseWikiId
-    let f :: Integer -> Redis (Either Reply Result)
-        f wid = do let prefix :: String
-                       prefix = "wiki." ++ show wid
-                   let s :: String -> String -> Redis (Either Reply Status)
-                       s k v = set (BSU.fromString k) (BSU.fromString v)
-                   let (==>) :: String -> String -> Redis (Either Reply Status)
-                       (==>) suffix value = s (prefix ++ suffix) value
-                   s ("wiki.hashes." ++ (hash $ show name)) (show wid)
-                   ".name" ==> show name
-                   ".date" ==> show date
-                   ".pages.nextpid" ==> "1"
-                   (".pages.hashes." ++ (hash "index")) ==> "0"
-                   ".pages.0.name" ==> "index"
-                   ".pages.0.version.0.content" ==> "Hello!"
-                   ".pages.0.version.0.date" ==> show date
-                   ".pages.0.current" ==> "0"
-                   ".pages.0.latest" ==> "0"
-                   return $ Right Success
-    case wid of
-      Right w -> f w
+    exists <- doesWikiExists name
+    case exists of
+      Right True -> return $ Right AlreadyExists
+      Right False -> do
+          wid <- increaseWikiId
+          let f :: Integer -> Redis (Either Reply Result)
+              f wid = do let prefix :: String
+                             prefix = "wiki." ++ show wid
+                         let s :: String -> String -> Redis (Either Reply Status)
+                             s k v = set (BSU.fromString k) (BSU.fromString v)
+                         let (==>) :: String -> String -> Redis (Either Reply Status)
+                             (==>) suffix value = s (prefix ++ suffix) value
+                         s ("wiki.hashes." ++ (hash $ show name)) (show wid)
+                         ".name" ==> show name
+                         ".date" ==> show date
+                         ".pages.nextpid" ==> "1"
+                         (".pages.hashes." ++ (hash "index")) ==> "0"
+                         ".pages.0.name" ==> "index"
+                         ".pages.0.version.0.content" ==> "Hello!"
+                         ".pages.0.version.0.date" ==> show date
+                         ".pages.0.current" ==> "0"
+                         ".pages.0.latest" ==> "0"
+                         return $ Right Success
+          case wid of
+            Right w -> f w
+            Left err -> return $ Left err
       Left err -> return $ Left err
 
 editPage :: ValidWikiName -> Page -> IO Result
