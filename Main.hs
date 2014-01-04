@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+import Control.Applicative ((<$>))
 import qualified Data.Text as T
 import System.Environment (getArgs, getEnv)
 import Control.Exception (catch)
@@ -10,8 +11,11 @@ import Kiwi.QueryAPI
 param :: String -> String -> IO String
 param name def = getEnv name `catch` \(_ :: IOError) -> return def
 
-apiUrl :: IO String
-apiUrl = param "KIWI_API" "http://localhost:8000"
+api :: IO API
+api = do
+  url <- param "KIWI_API_URL" "http://127.0.0.1"
+  port <- read <$> param "KIWI_API_PORT" "8000"
+  return $ API { apiUrl = url, apiPort = port }
 
 destDir :: IO String
 destDir = param "DEST" "./wiki"
@@ -19,16 +23,16 @@ destDir = param "DEST" "./wiki"
 renderWiki :: String -> IO ()
 renderWiki wname = do
   dir <- destDir
-  apiUrl >>= getWiki wname >>=
-         maybe (putStrLn "No such wiki")
-               (render dir)
+  api >>= getWiki wname >>=
+      maybe (putStrLn "No such wiki")
+            (render dir)
 
 renderPage :: String -> String -> IO ()
 renderPage wname pname = do
   dir <- destDir
-  apiUrl >>= getPage wname pname >>=
-         maybe (putStrLn "No such page")
-               (render dir)
+  api >>= getPage wname pname >>=
+      maybe (putStrLn "No such page")
+            (render dir)
 
 usage :: IO ()
 usage = putStrLn "usage: kiwi wiki [page]"

@@ -7,11 +7,16 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Network.Http.Client (get)
+import Network.Http.Client (openConnection, buildRequest, http, Method(..), sendRequest, emptyBody, receiveResponse, closeConnection, setAccept)
 import qualified System.IO.Streams as Streams
 
 import Kiwi.Serialization
 import Kiwi.Data
+
+data API = API {
+      apiUrl :: String
+    , apiPort :: Integer
+    } deriving (Show)
 
 readAll :: Streams.InputStream B.ByteString -> IO BL.ByteString
 readAll i = BL.concat <$> applyWhileJust Streams.read i
@@ -21,22 +26,34 @@ readAll i = BL.concat <$> applyWhileJust Streams.read i
                                      (\y -> applyWhileJust f x >>=
                                             return . ((BL.fromStrict y):))
 
-getPage :: String -> String -> String -> IO (Maybe Page)
-getPage wname pname api = do
-  get url (\_ i -> decode <$> readAll i)
-  where url = TE.encodeUtf8 $ T.concat [T.pack api, "/wiki/",
-                                          T.pack wname, T.pack pname]
+toB :: String -> B.ByteString
+toB s = TE.encodeUtf8 $ T.pack s
 
-getPages :: String -> [String] -> String -> IO [Page]
+get :: API -> String -> IO BL.ByteString
+get api path = do
+  c <- openConnection (toB $ apiUrl api) (fromInteger $ apiPort api)
+  q <- buildRequest $ do
+                 http GET (toB path)
+                 setAccept "application/json"
+  sendRequest c q emptyBody
+  res <- receiveResponse c (\_ i -> readAll i)
+  closeConnection c
+  return res
+
+getPage :: String -> String -> API -> IO (Maybe Page)
+getPage wname pname api =
+  decode <$> get api ("/wiki/" ++ wname ++ "/" ++ pname)
+
+getPages :: String -> [String] -> API -> IO [Page]
 getPages wname [] api = return []
 getPages wname (pname:pnames) api = do
   page <- getPage wname pname api
   pages <- getPages wname pnames api
   return $ maybe pages (:pages) page
 
-getWiki :: String -> String -> IO (Maybe Wiki)
+getWiki :: String -> API -> IO (Maybe Wiki)
 getWiki wname api = do
-  pageNames <- get url (\_ i -> fmap decode $ readAll i)
+  pageNames <- decode <$> get api ("/wiki/" ++ wname)
   pages <- extract $ (\ps -> getPages wname ps api) <$> pageNames
   return $ build <$> (validateWikiName $ T.pack wname) <*> pages
   where build wname pages = Wiki { wName = wname
@@ -45,4 +62,3 @@ getWiki wname api = do
                                  , wPassword = Nothing -- TODO
                                  }
         extract = maybe (return Nothing) (\x -> x >>= return . Just)
-        url = TE.encodeUtf8 $ T.concat [T.pack api, "/wiki/", T.pack wname]
