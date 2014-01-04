@@ -64,7 +64,7 @@ instance Renderable Wiki where
   render dir wiki = do
     putStrLn ("Generating wiki " ++ (show $ wName wiki) ++
               " in " ++ show wikiDir)
-    createDirectoryIfMissing False wikiDir
+    createDirectoryIfMissing True wikiDir
     TextIO.writeFile pageListFile $ renderMarkup $ wikiPageList wiki
     mapM_ (\(name, page) -> render wikiDir page) $ wPages wiki
     where wikiDir = dir </> (show $ wName wiki)
