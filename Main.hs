@@ -30,9 +30,13 @@ renderPage wname pname = do
          maybe (putStrLn "No such page")
                (render dir)
 
+usage :: IO ()
+usage = putStrLn "usage: kiwi wiki [page]"
+
 main :: IO ()
 main = do
   args <- getArgs
   case args of
     wiki:[] -> renderWiki wiki
     wiki:page:[] -> renderPage wiki page
+    _ -> usage
