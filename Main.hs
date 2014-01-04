@@ -13,7 +13,7 @@ param name def = getEnv name `catch` \(_ :: IOError) -> return def
 
 api :: IO API
 api = do
-  url <- param "KIWI_API_URL" "http://127.0.0.1"
+  url <- param "KIWI_API_URL" "127.0.0.1"
   port <- read <$> param "KIWI_API_PORT" "8000"
   return $ API { apiUrl = url, apiPort = port }
 
