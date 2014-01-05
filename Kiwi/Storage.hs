@@ -209,6 +209,7 @@ getPage wname pname = do
                               ReturnPage (Page
                                           { pVersion = version
                                           , pName = pname
+                                          , pWikiName = wname
                                           , pContent = c })
                       version <- get $ enc [prefix, ".current"]
                       let v = case version of

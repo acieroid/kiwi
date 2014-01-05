@@ -35,10 +35,13 @@ class Renderable a where
 -- | Create the full content of a wiki page
 wikiPage :: Page -> H.Html
 wikiPage page =
-  skeleton name $ do
-    H.h1 $ H.toHtml $ name
+  skeleton (wname ++ "/" ++ pname) $ do
+    H.h1 $ do
+      (H.a (H.toHtml wname) H.! HA.href "./")
+      H.toHtml ("/" ++ pname)
     content
-  where name = show $ pName page
+  where wname = show $ pWikiName page
+        pname = show $ pName page
         content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
 
 -- | A wiki page is renrderable
