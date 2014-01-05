@@ -27,10 +27,11 @@ validatePageName s =
 
 -- | Represents a page of the wiki
 data Page = Page {
-    pVersion :: Int        -- ^ Version number of this version of the page
-  , pName :: ValidPageName -- ^ Name of the page
+    pVersion  :: Int           -- ^ Version number of this version of the page
+  , pName     :: ValidPageName -- ^ Name of the page
+  , pWikiName :: ValidWikiName -- ^ Name of the wiki that contains this page
     -- TODO: validate page contents
-  , pContent :: T.Text     -- ^ Raw content of the page
+  , pContent  :: T.Text        -- ^ Raw content of the page
   }
             deriving (Show, Eq)
 
@@ -39,8 +40,11 @@ examplePage :: Page
 examplePage =
   Page { pVersion = 1
        , pName = case validatePageName "index" of
-         Just n -> n
-         Nothing -> error "Invalid page name: index"
+                   Just n -> n
+                   Nothing -> error "Invalid page name: index"
+       , pWikiName = case validateWikiName "example" of
+                       Just n -> n
+                       Nothing -> error "Invalid wiki name: example"
        , pContent = "Hello, *world* !"
        }
 

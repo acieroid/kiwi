@@ -132,5 +132,6 @@ editWikiPage wname pname req = do
   withPageName (\w p -> S.editPage w 
                         (Page { pVersion = 0
                               , pName = p
+                              , pWikiName = w
                               , pContent = TE.decodeUtf8 strictContent }))
                wname pname

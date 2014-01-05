@@ -16,8 +16,8 @@ build-type:          Simple
 extra-source-files:  README.org
 cabal-version:       >=1.10
 
-executable kiwi
-  main-is:             Main.hs
+executable generate
+  main-is:             Generate.hs
   build-depends:       base >=4.6 && <4.7
                        , containers
                        , pandoc
