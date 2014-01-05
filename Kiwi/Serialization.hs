@@ -9,7 +9,7 @@ import Data.Text as T
 import Kiwi.Data
 
 instance ToJSON Page where
-    toJSON page = object [ "version" .= (show $ pVersion page)
+    toJSON page = object [ "version" .= pVersion page
                          , "name" .= (show $ pName page)
                          , "content" .= pContent page ]
 
