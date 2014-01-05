@@ -21,7 +21,7 @@ instance FromJSON Page where
                            v .: "name" <*>
                            v .: "content" <*>
                            v .: "version"
-        where build wname pname version content =
+        where build wname pname content version =
                   Page { pVersion = version
                        , pName = pname
                        , pWikiName = wname
