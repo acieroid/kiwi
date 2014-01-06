@@ -50,12 +50,13 @@ wikiPage page =
                  H.toHtml ("/" ++ pname)
                H.a "pages" H.! HA.href "_pages"
                " - "
-               H.a "versions" H.! HA.href "TODO"
+               H.a "versions" H.! HA.href (HI.stringValue versions)
                " - "
-               H.a "edit" H.! HA.href "TODO")
+               H.a "edit" H.! HA.href "#" H.! HA.onclick "edit();")
            content
   where wname = show $ pWikiName page
         pname = show $ pName page
+        versions = pname ++ "_versions"
         content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
 
 -- | A wiki page is renrderable
