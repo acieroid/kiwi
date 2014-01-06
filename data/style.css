@@ -7,8 +7,8 @@ body {
   background-color: #ffffff;
   padding-top: 20px;
   padding-bottom: 20px;
-  padding-left: 10%;
-  padding-right: 10%;
+  padding-left: 1%;
+  padding-right: 1%;
 }
 
 a {
@@ -30,7 +30,7 @@ ul ul {
   margin-bottom: 0;
 }
 
-.hero-unit {
+.content {
   padding: 60px;
   margin-bottom: 30px;
   font-size: 16px;
@@ -41,7 +41,7 @@ ul ul {
   border-radius: 6px;
 }
 
-.hero-unit h1 {
+.content h1 {
   margin-top: 0;
   margin-bottom: 0;
   font-size: 60px;
@@ -50,7 +50,7 @@ ul ul {
   color: inherit;
 }
 
-.hero-unit li {
+.content li {
   line-height: 30px;
 }
 
@@ -66,6 +66,7 @@ abbr[data-original-title] {
   cursor: help;
   border-bottom: 1px dotted #999999;
 }
+
 code {
   font-family: monospace;
   font-size: 12px;
@@ -75,15 +76,12 @@ code {
   background-color: #f7f7f9;
   border: 1px solid #e1e1e8;
 }
-.banner {
+
+#banner {
   text-align: center;
   padding: 20px;
 }
-.small-unit {
-  margin-left: 8%;
-  margin-right: 8%;
-  padding: 10px;
-}
+
 footer {
   text-align: right;
 }

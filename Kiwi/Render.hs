@@ -19,15 +19,23 @@ import Kiwi.Data
 -- TODO: factor out the html part, to have a more generic rendering
 -- engine (that can eg. output pdf, etc.)
 
--- | Skeleton for HTML output. The argument will be put inside the body
-skeleton :: String -> H.Html -> H.Html
-skeleton name body =
+-- | Skeleton for HTML output, given: its title, its header and its body
+skeleton :: String -> H.Html -> H.Html -> H.Html
+skeleton title header body =
   H.docTypeHtml $ do
     H.head $ do
       H.meta H.! HA.charset "utf-8"
       H.link H.! HA.rel "stylesheet" H.! HA.type_ "text/css" H.! HA.href "../style.css"
-      H.title $ H.toHtml $ name
-    H.body body
+      H.title $ H.toHtml $ title
+    H.body $ do
+      H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
+      H.div H.! HA.class_ "content" H.! HA.id "main" $ body
+      H.hr
+      H.footer $ do
+        "Generated with luvz by "
+        H.a "awesom" H.! HA.href "http://awesom.eu"
+        ". Get your own instance! Use the "
+        H.a "source" H.! HA.href "http://github.com/acieroid/kiwi"
 
 -- | Something is Renderable if it can be rendered in a file
 class Renderable a where
@@ -36,24 +44,16 @@ class Renderable a where
 -- | Create the full content of a wiki page
 wikiPage :: Page -> H.Html
 wikiPage page =
-  skeleton (wname ++ "/" ++ pname) $ do
-    H.div H.! HA.class_ "hero-unit banner" $ do
-      H.h1 $ do
-        H.a (H.toHtml wname) H.! HA.href "./"
-        H.toHtml ("/" ++ pname)
-      H.a "pages" H.! HA.href "_pages"
-      " - "
-      H.a "versions" H.! HA.href "TODO"
-      " - "
-      H.a "edit" H.! HA.href "TODO"
-    H.div H.! HA.class_ "hero-unit" $ do
-      content
-    H.hr
-    H.footer $ do
-      "Generated with luvz by "
-      H.a "awesom" H.! HA.href "http://awesom.eu"
-      ". Get your own instance! Use the "
-      H.a "source" H.! HA.href "http://github.com/acieroid/kiwi"
+  skeleton (wname ++ "/" ++ pname)
+           (do H.h1 $ do
+                 H.a (H.toHtml wname) H.! HA.href "./"
+                 H.toHtml ("/" ++ pname)
+               H.a "pages" H.! HA.href "_pages"
+               " - "
+               H.a "versions" H.! HA.href "TODO"
+               " - "
+               H.a "edit" H.! HA.href "TODO")
+           content
   where wname = show $ pWikiName page
         pname = show $ pName page
         content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
@@ -69,14 +69,12 @@ instance Renderable Page where
 -- | Create a page listing all the pages contained in a wiki
 wikiPageList :: Wiki -> H.Html
 wikiPageList wiki =
-  skeleton name $ do
-    H.div H.! HA.class_ "hero-unit banner" $ do
-      H.h1 $ H.toHtml name
-    H.div H.! HA.class_ "hero-unit" $ do
-      H.ul $ forM_ pages (\p -> H.li $ H.a H.! HA.href (HI.stringValue $ show p) $
-                                H.toHtml $ show p)
+  skeleton name (H.h1 $ H.toHtml name)
+           (H.ul $ forM_ pages pageLink)
   where name = show $ wName wiki
         pages = map fst $ wPages wiki
+        pageLink p = H.li $ H.a H.! HA.href (HI.stringValue $ show p) $
+                                H.toHtml $ show p
 
 -- | A wiki is renderable
 instance Renderable Wiki where
