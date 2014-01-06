@@ -25,6 +25,7 @@ skeleton name body =
   H.docTypeHtml $ do
     H.head $ do
       H.meta H.! HA.charset "utf-8"
+      H.link H.! HA.rel "stylesheet" H.! HA.type_ "text/css" H.! HA.href "../style.css"
       H.title $ H.toHtml $ name
     H.body body
 
@@ -36,10 +37,23 @@ class Renderable a where
 wikiPage :: Page -> H.Html
 wikiPage page =
   skeleton (wname ++ "/" ++ pname) $ do
-    H.h1 $ do
-      (H.a (H.toHtml wname) H.! HA.href "./")
-      H.toHtml ("/" ++ pname)
-    content
+    H.div H.! HA.class_ "hero-unit banner" $ do
+      H.h1 $ do
+        H.a (H.toHtml wname) H.! HA.href "./"
+        H.toHtml ("/" ++ pname)
+      H.a "pages" H.! HA.href "_pages"
+      " - "
+      H.a "versions" H.! HA.href "TODO"
+      " - "
+      H.a "edit" H.! HA.href "TODO"
+    H.div H.! HA.class_ "hero-unit" $ do
+      content
+    H.hr
+    H.footer $ do
+      "Generated with luvz by "
+      H.a "awesom" H.! HA.href "http://awesom.eu"
+      ". Get your own instance! Use the "
+      H.a "source" H.! HA.href "http://github.com/acieroid/kiwi"
   where wname = show $ pWikiName page
         pname = show $ pName page
         content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
@@ -56,9 +70,11 @@ instance Renderable Page where
 wikiPageList :: Wiki -> H.Html
 wikiPageList wiki =
   skeleton name $ do
-    H.h1 $ H.toHtml $ name
-    H.ul $ forM_ pages (\p -> H.li $ H.a H.! HA.href (HI.stringValue $ show p) $
-                              H.toHtml $ show p)
+    H.div H.! HA.class_ "hero-unit banner" $ do
+      H.h1 $ H.toHtml name
+    H.div H.! HA.class_ "hero-unit" $ do
+      H.ul $ forM_ pages (\p -> H.li $ H.a H.! HA.href (HI.stringValue $ show p) $
+                                H.toHtml $ show p)
   where name = show $ wName wiki
         pages = map fst $ wPages wiki
 
