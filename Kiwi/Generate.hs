@@ -1,4 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+module Kiwi.Generate where
+
 import Control.Applicative ((<$>))
 import qualified Data.Text as T
 import System.Environment (getArgs, getEnv)

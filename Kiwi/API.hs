@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
+module Kiwi.API where
+
 import Blaze.ByteString.Builder (fromLazyByteString)
 import Data.Aeson
 import qualified Data.ByteString.UTF8 as BU
@@ -24,7 +26,7 @@ main = do
 
 app :: Application
 app req =
-    case (requestMethod req, dropEmpty $ pathInfo req) of
+    case (requestMethod req, simplify $ pathInfo req) of
         ("GET", ["help"]) -> return help
         ("GET", ["about"]) -> return about
         ("POST", ["wiki", wname]) -> addWiki wname req
@@ -32,8 +34,10 @@ app req =
         ("GET", ["wiki", wname, pname]) -> getWikiPage wname pname
         ("POST", ["wiki", wname, pname]) -> editWikiPage wname pname req
         _ -> return notFound
-    where dropEmpty :: [T.Text] -> [T.Text]
-          dropEmpty = filter (not . T.null)
+    where dropEmpty = filter (not . T.null)
+          dropApi ("api":rest) = rest
+          dropApi url = url
+          simplify = dropApi . dropEmpty
 
 headers :: ResponseHeaders
 headers = [("Content-Type", "application/json")]
