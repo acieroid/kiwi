@@ -24,6 +24,7 @@ executable generate
                        , blaze-html
                        , blaze-markup
                        , bytestring
+                       , cmdargs
                        , containers
                        , cryptohash
                        , directory
@@ -52,6 +53,7 @@ executable api
                        , blaze-html
                        , blaze-markup
                        , bytestring
+                       , cmdargs
                        , containers
                        , cryptohash
                        , directory
@@ -80,6 +82,7 @@ executable server
                        , blaze-html
                        , blaze-markup
                        , bytestring
+                       , cmdargs
                        , containers
                        , cryptohash
                        , directory

@@ -1,21 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Kiwi.Server where
 
+import Data.Functor ((<$>))
+import Data.Maybe (mapMaybe)
 import Network.Wai.Application.Static (staticApp, defaultFileServerSettings)
 import Network.Wai
 import Network.Wai.Handler.Warp
 import WaiAppStatic.Types (ssIndices, ssGetMimeType, toPiece)
-import Data.Maybe (mapMaybe)
 
 import qualified Kiwi.API as API
-
--- TODO: System.Console.CmdArgs
+import qualified Kiwi.Config as Config
 
 main :: IO ()
 main = do
-    let port = 8000
-    putStrLn $ "Server listening on port " ++ show port
-    run port app
+  port <- Config.port <$> Config.args
+  putStrLn $ "Server listening on port " ++ show port
+  run port app
 
 app :: Application
 app req = case pathInfo req of
