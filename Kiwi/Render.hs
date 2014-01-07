@@ -51,7 +51,7 @@ wikiPage page =
            (do H.h1 $ do
                  H.a (H.toHtml wname) H.! HA.href "./"
                  H.toHtml ("/" ++ pname)
-               H.a "pages" H.! HA.href "_pages"
+               H.a "pages" H.! HA.href (HI.stringValue pages)
                " - "
                H.a "versions" H.! HA.href (HI.stringValue versions)
                " - "
@@ -59,6 +59,7 @@ wikiPage page =
            content
   where wname = show $ pWikiName page
         pname = show $ pName page
+        pages = "_pages"
         versions = pname ++ "_versions"
         content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
         editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"

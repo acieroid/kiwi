@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+module Kiwi.Server where
+
 import Network.Wai.Application.Static (staticApp, defaultFileServerSettings)
 import Network.Wai
 import Network.Wai.Handler.Warp
+import WaiAppStatic.Types (ssIndices, ssGetMimeType, toPiece)
+import Data.Maybe (mapMaybe)
 
 import qualified Kiwi.API as API
 
@@ -15,10 +19,13 @@ main = do
 
 app :: Application
 app req = case pathInfo req of
-            "api":_ -> API.app req
-            "wiki":_ -> static req
-            _ -> return API.notFound
+            "wiki":_ -> API.app req
+            _ -> static req
 
+-- TODO: not found page, no listing
 static :: Application
-static = staticApp (defaultFileServerSettings "wiki/")
+static = staticApp (defaultFileServerSettings "./wiki")
+         { ssGetMimeType = (\_ -> return "html")
+         , ssIndices = mapMaybe toPiece ["index"]
+         }
 
