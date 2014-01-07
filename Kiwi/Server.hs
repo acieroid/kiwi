@@ -13,7 +13,7 @@ import qualified Kiwi.Config as Config
 
 main :: IO ()
 main = do
-  port <- Config.port <$> Config.args
+  port <- Config.port
   putStrLn $ "Server listening on port " ++ show port
   run port app
 
