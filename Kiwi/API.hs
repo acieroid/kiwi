@@ -27,8 +27,6 @@ main = do
 app :: Application
 app req =
     case (requestMethod req, simplify $ pathInfo req) of
-        ("GET", ["help"]) -> return help
-        ("GET", ["about"]) -> return about
         ("POST", ["wiki", wname]) -> addWiki wname req
         ("GET", ["wiki", wname]) -> getWikiPages wname
         ("GET", ["wiki", wname, pname]) -> getWikiPage wname pname
@@ -93,12 +91,6 @@ notFound = build status404 $ failure "Not Found"
 
 notImplemented :: Response
 notImplemented = build status404 $ failure "Not Implemented (...yet)"
-
-help :: Response
-help = notImplemented -- TODO
-
-about :: Response
-about = notImplemented -- TODO
 
 withWikiName :: (ValidWikiName -> IO S.Result) -> T.Text -> IO Response
 withWikiName action wname =
