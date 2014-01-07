@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Kiwi.Config where
 
-import System.Console.CmdArgs (cmdArgs, Data, Typeable)
+import System.Environment
+import System.Console.CmdArgs ((&=), cmdArgs, Data, details, help, program,
+                               summary, Typeable)
 
 data Args = Args
     { wikidir :: FilePath
@@ -12,10 +14,12 @@ data Args = Args
 
 defaultArgs :: Args
 defaultArgs = Args
-              { wikidir = "./wiki"
-              , port = 8000
-              , host = "localhost"
+              { wikidir = "./wiki" &= help "Wiki directory"
+              , port = 8000 &= help "Listening port"
+              , host = "localhost" &= help "Listening host"
               }
+              &= summary "kiwi v0.1"
+              &= details ["More info at http://github.com/acieroid/kiwi"]
 
 args :: IO Args
-args = cmdArgs defaultArgs
+args = getProgName >>= (\p -> cmdArgs (defaultArgs &= program p))
