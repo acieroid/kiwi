@@ -15,7 +15,7 @@ main :: IO ()
 main = do
   port <- Config.port
   putStrLn $ "Server listening on port " ++ show port
-  run port app
+  run (fromInteger port) app
 
 app :: Application
 app req = case pathInfo req of

@@ -10,13 +10,9 @@ import qualified Data.Text.Encoding as TE
 import Network.Http.Client (openConnection, buildRequest, http, Method(..), sendRequest, emptyBody, receiveResponse, closeConnection, setAccept)
 import qualified System.IO.Streams as Streams
 
-import Kiwi.Serialization
+import Kiwi.Config as Config
 import Kiwi.Data
-
-data API = API {
-      apiUrl :: String
-    , apiPort :: Integer
-    } deriving (Show)
+import Kiwi.Serialization
 
 readAll :: Streams.InputStream B.ByteString -> IO BL.ByteString
 readAll i = BL.concat <$> applyWhileJust Streams.read i
@@ -29,9 +25,11 @@ readAll i = BL.concat <$> applyWhileJust Streams.read i
 toB :: String -> B.ByteString
 toB s = TE.encodeUtf8 $ T.pack s
 
-get :: API -> String -> IO BL.ByteString
-get api path = do
-  c <- openConnection (toB $ apiUrl api) (fromInteger $ apiPort api)
+get :: String -> IO BL.ByteString
+get path = do
+  port <- Config.port
+  host <- Config.host
+  c <- openConnection (toB $ host) (fromInteger $ port)
   q <- buildRequest $ do
                  http GET (toB path)
                  setAccept "application/json"
@@ -40,25 +38,25 @@ get api path = do
   closeConnection c
   return res
 
-getPage :: String -> String -> API -> IO (Maybe Page)
-getPage wname pname api =
-  decode <$> get api ("/wiki/" ++ wname ++ "/" ++ pname)
+getPage :: String -> String -> IO (Maybe Page)
+getPage wname pname =
+  decode <$> get ("/wiki/" ++ wname ++ "/" ++ pname)
 
-getPages :: String -> [String] -> API -> IO [Page]
-getPages wname [] api = return []
-getPages wname (pname:pnames) api = do
-  page <- getPage wname pname api
-  pages <- getPages wname pnames api
+getPages :: String -> [String] -> IO [Page]
+getPages wname [] = return []
+getPages wname (pname:pnames) = do
+  page <- getPage wname pname
+  pages <- getPages wname pnames
   return $ maybe pages (:pages) page
 
-getWiki :: String -> API -> IO (Maybe Wiki)
-getWiki wname api = do
-  pageNames <- decode <$> get api ("/wiki/" ++ wname)
-  pages <- extract $ (\ps -> getPages wname ps api) <$> pageNames
+getWiki :: String -> IO (Maybe Wiki)
+getWiki wname = do
+  pageNames <- decode <$> get ("/wiki/" ++ wname)
+  pages <- extract $ (getPages wname) <$> pageNames
   return $ build <$> (validateWikiName $ T.pack wname) <*> pages
   where build wname pages = Wiki { wName = wname
                                  , wPages = map (\p -> (pName p, p)) pages
                                  , wAccess = ReadWrite -- TODO
                                  , wPassword = Nothing -- TODO
                                  }
-        extract = maybe (return Nothing) (\x -> x >>= return . Just)
+        extract = maybe (return Nothing) (>>= return . Just)
