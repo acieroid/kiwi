@@ -26,6 +26,9 @@ skeleton title header body =
     H.head $ do
       H.meta H.! HA.charset "utf-8"
       H.link H.! HA.rel "stylesheet" H.! HA.type_ "text/css" H.! HA.href "../style.css"
+      -- TODO: host this file too
+      H.script H.! HA.src "http://code.jquery.com/jquery-1.10.1.min.js" $ ""
+      H.script H.! HA.src "../edit.js" $ ""
       H.title $ H.toHtml $ title
     H.body $ do
       H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
@@ -52,12 +55,13 @@ wikiPage page =
                " - "
                H.a "versions" H.! HA.href (HI.stringValue versions)
                " - "
-               H.a "edit" H.! HA.href "#" H.! HA.onclick "edit();")
+               H.a "edit" H.! HA.id "action" H.! HA.href "#" H.! HA.onclick (HI.stringValue editFn))
            content
   where wname = show $ pWikiName page
         pname = show $ pName page
         versions = pname ++ "_versions"
         content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
+        editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
 
 -- | A wiki page is renrderable
 instance Renderable Page where
