@@ -25,15 +25,9 @@ renderPage wname pname = do
           maybe (putStrLn "No such page")
                 (render dir)
 
-usage :: IO ()
-usage =
-    putStrLn "usage: generate wiki [page] [options]" >>
-    putStrLn "Run generate --help for the list of options"
-
 main :: IO ()
-main = do
-  args <- getArgs
-  case args of
-    wiki:[] -> renderWiki wiki
-    wiki:page:[] -> renderPage wiki page
-    _ -> usage
+main =
+  Config.wiki >>=
+        maybe (putStrLn "No wiki specified, use --wiki")
+              (\w -> Config.page >>= maybe (renderWiki w)
+                                           (renderPage w))

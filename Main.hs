@@ -3,14 +3,18 @@ module Main where
 import System.Environment (getProgName)
 
 import qualified Kiwi.API as API
+import qualified Kiwi.Config as Config
 import qualified Kiwi.Generate as Generate
 import qualified Kiwi.Server as Server
+import qualified Kiwi.ServerAndAPI as ServerAndAPI
+
 
 main :: IO ()
 main = do
-  name <- getProgName
-  case name of
-    "api" -> API.main
-    "generate" -> Generate.main
-    "server" -> Server.main
-    _ -> error ("Unknown action for program: " ++ name)
+  target <- Config.target
+  case target of
+    Config.API -> API.main
+    Config.Server -> Server.main
+    Config.ServerAndAPI -> ServerAndAPI.main
+    Config.Generate -> Generate.main
+
