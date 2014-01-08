@@ -16,6 +16,7 @@ import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404, st
 
 import qualified Kiwi.Config as Config
 import Kiwi.Data
+import Kiwi.Generate
 import Kiwi.Serialization
 import qualified Kiwi.Storage as S
 
@@ -110,9 +111,18 @@ withPageName action wname pname =
                        (validatePageName pname))
           (validateWikiName wname)
 
+ifNecessary :: IO () -> IO ()
+ifNecessary action = do
+  target <- Config.target
+  case target of
+    Config.ServerAndAPI -> action
+    _ -> return ()
+
 addWiki :: T.Text -> Request -> IO Response
-addWiki wname req =
-    withWikiName S.addWiki wname
+addWiki wname req = do
+    response <- withWikiName S.addWiki wname
+    ifNecessary (renderWiki $ T.unpack wname)
+    return response
 
 getWikiPages :: T.Text -> IO Response
 getWikiPages wname =
@@ -126,9 +136,11 @@ editWikiPage :: T.Text -> T.Text -> Request -> IO Response
 editWikiPage wname pname req = do
   content <- lazyRequestBody req
   let strictContent = B.concat $ BL.toChunks content
-  withPageName (\w p -> S.editPage w 
-                        (Page { pVersion = 0
-                              , pName = p
-                              , pWikiName = w
-                              , pContent = TE.decodeUtf8 strictContent }))
-               wname pname
+  response <- withPageName (\w p -> S.editPage w
+                                    (Page { pVersion = 0
+                                          , pName = p
+                                          , pWikiName = w
+                                          , pContent = TE.decodeUtf8 strictContent }))
+                           wname pname
+  ifNecessary (renderPage (T.unpack wname) (T.unpack pname))
+  return response
