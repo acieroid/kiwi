@@ -14,15 +14,16 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404, status500)
 
+import qualified Kiwi.Config as Config
 import Kiwi.Data
 import Kiwi.Serialization
 import qualified Kiwi.Storage as S
 
 main :: IO () 
 main = do
-    let port = 8000
-    putStrLn $ "API listening on port " ++ show port
-    run port app
+  port <- Config.port
+  putStrLn $ "API listening on port " ++ show port
+  run (fromInteger port) app
 
 app :: Application
 app req =
