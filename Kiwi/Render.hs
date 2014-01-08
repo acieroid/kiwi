@@ -28,7 +28,7 @@ skeleton title header body =
         H.link H.! HA.rel "stylesheet" H.! HA.type_ "text/css" H.! HA.href "../style.css"
         -- TODO: host this file too
         H.script H.! HA.src "http://code.jquery.com/jquery-1.10.1.min.js" $ ""
-        H.script H.! HA.src "../edit.js" $ ""
+        H.script H.! HA.src "../kiwi.js" $ ""
         H.title $ H.toHtml $ title
       H.body $ do
         H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
