@@ -11,10 +11,10 @@ import Text.Regex (Regex, mkRegex, matchRegex)
 -- | An opaque type representing a valid name of a page (that
 -- can be used in an URL)
 data ValidPageName = ValidPageName T.Text
-               deriving Eq
+                     deriving Eq
 
 instance Show ValidPageName where
-  show (ValidPageName s) = T.unpack s
+    show (ValidPageName s) = T.unpack s
 
 -- | Regex that valid page names should match
 validPageNameRegex :: Regex
@@ -23,30 +23,30 @@ validPageNameRegex = mkRegex "^[a-zA-Z0-9/-]+$"
 -- | Construct a valid page name
 validatePageName :: T.Text -> Maybe ValidPageName
 validatePageName s =
-  matchRegex validPageNameRegex (T.unpack s) >> Just (ValidPageName s)
+    matchRegex validPageNameRegex (T.unpack s) >> Just (ValidPageName s)
 
 -- | Represents a page of the wiki
 data Page = Page {
-    pVersion  :: Int           -- ^ Version number of this version of the page
-  , pName     :: ValidPageName -- ^ Name of the page
-  , pWikiName :: ValidWikiName -- ^ Name of the wiki that contains this page
-    -- TODO: validate page contents
-  , pContent  :: T.Text        -- ^ Raw content of the page
+      pVersion  :: Int           -- ^ Version number of this version of the page
+    , pName     :: ValidPageName -- ^ Name of the page
+    , pWikiName :: ValidWikiName -- ^ Name of the wiki that contains this page
+      -- TODO: validate page contents
+    , pContent  :: T.Text        -- ^ Raw content of the page
   }
             deriving (Show, Eq)
 
 -- | Example page
 examplePage :: Page
 examplePage =
-  Page { pVersion = 1
-       , pName = case validatePageName "index" of
-                   Just n -> n
-                   Nothing -> error "Invalid page name: index"
-       , pWikiName = case validateWikiName "example" of
-                       Just n -> n
-                       Nothing -> error "Invalid wiki name: example"
-       , pContent = "Hello, *world* !"
-       }
+    Page { pVersion = 1
+         , pName = case validatePageName "index" of
+                     Just n -> n
+                     Nothing -> error "Invalid page name: index"
+         , pWikiName = case validateWikiName "example" of
+                         Just n -> n
+                         Nothing -> error "Invalid wiki name: example"
+         , pContent = "Hello, *world* !"
+         }
 
 -- | Possible access modes of a wiki
 data AccessMode = ReadWrite     -- ^ Read and write for everybody
@@ -56,10 +56,10 @@ data AccessMode = ReadWrite     -- ^ Read and write for everybody
 
 -- | An opaque type representing a valid name of a wiki
 data ValidWikiName = ValidWikiName T.Text
-               deriving Eq
+                     deriving Eq
 
 instance Show ValidWikiName where
-  show (ValidWikiName s) = T.unpack s
+    show (ValidWikiName s) = T.unpack s
 
 -- | Regex that valid wiki names should match
 validWikiNameRegex :: Regex
@@ -68,24 +68,24 @@ validWikiNameRegex = mkRegex "^[a-zA-Z0-9-]+$"
 -- | Construct a valid wiki name
 validateWikiName :: T.Text -> Maybe ValidWikiName
 validateWikiName s =
-  matchRegex validWikiNameRegex (T.unpack s) >> Just (ValidWikiName s)
+    matchRegex validWikiNameRegex (T.unpack s) >> Just (ValidWikiName s)
 
 -- | Represents a wiki
 data Wiki = Wiki {
-    wName :: ValidWikiName            -- ^ Name of the wiki
-  , wPages :: [(ValidPageName, Page)] -- ^ Pages contained in this wiki
-  , wAccess :: AccessMode             -- ^ Access mode of this wiki
-  , wPassword :: Maybe T.Text         -- ^ Password protecting this wiki
-  }
-          deriving (Show, Eq)
+      wName :: ValidWikiName            -- ^ Name of the wiki
+    , wPages :: [(ValidPageName, Page)] -- ^ Pages contained in this wiki
+    , wAccess :: AccessMode             -- ^ Access mode of this wiki
+    , wPassword :: Maybe T.Text         -- ^ Password protecting this wiki
+    }
+            deriving (Show, Eq)
 
 -- | Example wiki
 exampleWiki :: Wiki
 exampleWiki =
-  Wiki { wName = case validateWikiName "example" of
-            Just n -> n
-            Nothing -> error "Invalid wiki name: example"
-       , wPages = [(pName examplePage, examplePage)]
-       , wAccess = ReadWrite
-       , wPassword = Nothing
-       }
+    Wiki { wName = case validateWikiName "example" of
+                     Just n -> n
+                     Nothing -> error "Invalid wiki name: example"
+         , wPages = [(pName examplePage, examplePage)]
+         , wAccess = ReadWrite
+         , wPassword = Nothing
+         }
