@@ -98,7 +98,9 @@ instance Renderable Wiki where
 indexPage :: Index -> H.Html
 indexPage content =
     skeleton (iTitle content) (do H.h1 $ H.toHtml $ iTitle content
-                                  H.a "new" H.! HA.href "#" H.! HA.onclick "create();")
+                                  H.input H.! HA.type_ "text" H.! HA.id "name"
+                                  " "
+                                  H.a "create" H.! HA.href "#" H.! HA.onclick "create();")
              pageContent
     where pageContent = writeHtml def $ readMarkdown def $ iInfos content
 

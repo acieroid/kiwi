@@ -102,8 +102,8 @@ data Index = Index {
 index :: Index
 index =
     Index { iTitle = "Kiwi!"
-          , iInfos = unlines ["### Click *new* to add a new wiki",
-                              ""
+          , iInfos = unlines ["### Choose a name and click *create* to add a new wiki",
+                              "",
                               "This service is currently highly alpha.",
                               "",
                               "Source code available [here](https://github.com/acieroid/kiwi). Any contribution is welcome!"]

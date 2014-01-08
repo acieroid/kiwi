@@ -2,6 +2,13 @@ function error(msg) {
     alert("Error: " + msg);
 }
 
+function create() {
+    var name = $("#name").val();
+    $.post("/wiki/" + name, function(data) {
+        window.location.href = name + "/";
+    });
+}
+
 function save(wiki, page) {
     var content = $("#content").val();
     $.post("/wiki/" + wiki + "/" + page, content, function(data) {
