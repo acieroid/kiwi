@@ -39,6 +39,7 @@ skeleton title header body =
         H.a "awesom" H.! HA.href "http://awesom.eu"
         ". Get your own instance! Use the "
         H.a "source" H.! HA.href "http://github.com/acieroid/kiwi"
+        "."
 
 -- | Something is Renderable if it can be rendered in a file
 class Renderable a where
