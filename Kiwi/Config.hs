@@ -27,7 +27,7 @@ defaultArgs = Args
               , argPort = 8000
                           &= explicit &= name "port"
                           &= help "Listening port"
-              , argHost = "localhost"
+              , argHost = "127.0.0.1"
                           &= explicit &= name "host"
                           &= help "Listening host"
               , argWiki = Nothing
