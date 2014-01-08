@@ -23,7 +23,7 @@ renderPage wname pname = do
   dir <- Config.wikiDir
   getPage wname pname >>=
           maybe (putStrLn "No such page")
-                (render dir)
+                (render (dir ++ "/" ++ wname))
 
 main :: IO ()
 main =
