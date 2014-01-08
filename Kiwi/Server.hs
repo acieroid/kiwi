@@ -16,7 +16,6 @@ main = do
   putStrLn $ "Server listening on port " ++ show port
   run (fromInteger port) static
 
--- TODO: not found page, no listing
 static :: Application
 static = staticApp (defaultFileServerSettings "./wiki")
          { ssGetMimeType = (\_ -> return "html")

@@ -94,3 +94,17 @@ instance Renderable Wiki where
       where wikiDir = dir </> (show $ wName wiki)
             pageListFile = wikiDir </> "_pages"
 
+-- | Generate a page for the index
+indexPage :: Index -> H.Html
+indexPage content =
+    skeleton (iTitle content) (do H.h1 $ H.toHtml $ iTitle content
+                                  H.a "new" H.! HA.href "#" H.! HA.onclick "create();")
+             pageContent
+    where pageContent = writeHtml def $ readMarkdown def $ iInfos content
+
+-- | The index is renderable
+instance Renderable Index where
+    render dir content = do
+      putStrLn "Generating index"
+      createDirectoryIfMissing True dir
+      TextIO.writeFile (dir </> "index") $ renderMarkup $ indexPage content

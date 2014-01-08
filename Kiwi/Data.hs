@@ -2,7 +2,8 @@
 
 module Kiwi.Data (
   ValidPageName, validatePageName, Page(..), examplePage,
-  AccessMode(..), ValidWikiName, validateWikiName, Wiki(..), exampleWiki
+  AccessMode(..), ValidWikiName, validateWikiName, Wiki(..), exampleWiki,
+  Index(..), index
   ) where
 
 import qualified Data.Text as T
@@ -89,3 +90,21 @@ exampleWiki =
          , wAccess = ReadWrite
          , wPassword = Nothing
          }
+
+-- | Index page
+data Index = Index {
+      iTitle :: String -- ^ Title of the index page
+    , iInfos :: String -- ^ Infos to put on the index page
+    }
+             deriving (Show, Eq)
+
+-- | The actual index page
+index :: Index
+index =
+    Index { iTitle = "Kiwi!"
+          , iInfos = unlines ["### Click *new* to add a new wiki",
+                              ""
+                              "This service is currently highly alpha.",
+                              "",
+                              "Source code available [here](https://github.com/acieroid/kiwi). Any contribution is welcome!"]
+          }

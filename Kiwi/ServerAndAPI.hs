@@ -18,5 +18,3 @@ app :: Application
 app req = case pathInfo req of
             "wiki":_ -> API.app req
             _ -> Server.static req
-
-

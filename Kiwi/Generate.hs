@@ -25,9 +25,14 @@ renderPage wname pname = do
           maybe (putStrLn "No such page")
                 (render (dir ++ "/" ++ wname))
 
+renderIndex :: IO ()
+renderIndex = do
+  dir <- Config.wikiDir
+  render dir index
+
 main :: IO ()
 main =
   Config.wiki >>=
-        maybe (putStrLn "No wiki specified, use --wiki")
+        maybe renderIndex
               (\w -> Config.page >>= maybe (renderWiki w)
                                            (renderPage w))
