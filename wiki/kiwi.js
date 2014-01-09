@@ -1,13 +1,47 @@
 function error(msg) {
+    // TODO: neatly display this message
     alert("Error: " + msg);
 }
 
 function create() {
-    var name = $("#name").val();
+    $("#dialog").html("\
+<form>\
+<label for=\"name\">Wiki name: </label>\
+<input type=\"input\" id=\"name\"/><br/>\
+<input type=\"submit\" id=\"submit\" value=\"create!\"/>\
+</form>");
+    $("#submit").click(function () {
+        addwiki($("#name").val());
+        $("#dialog").html("");
+    });
+}
+
+function newpage(wiki) {
+    $("#dialog").html("\
+<form>\
+<label for=\"name\">Page name:</label>\
+<input type=\"input\" id=\"name\"/><br/>\
+<input type=\"submit\" id=\"submit\" value=\"create!\"/>\
+</form>");
+    $("#submit").click(function () {
+        addpage(wiki, $("#name").val());
+        $("#dialog").html("");
+    });
+}
+
+function addwiki(name) {
     $.post("/wiki/" + name, function(data) {
         window.location.href = name + "/";
-    }).fail(function() {
-        error("cannot create wiki (API not available, invalid wiki name, or wiki already exists)");
+    }).fail(function(data) {
+        error(data.responseText);
+    });
+}
+
+function addpage(wiki, name) {
+    $.post("/wiki/" + wiki + "/" + name, function(data) {
+        window.location.href = name + "/";
+    }).fail(function(data) {
+        error(data.responseText);
     });
 }
 
@@ -15,8 +49,8 @@ function save(wiki, page) {
     var content = $("#content").val();
     $.post("/wiki/" + wiki + "/" + page, content, function(data) {
         location.reload()
-    }).fail(function() {
-        error("cannot save page (API not available or wiki is password-protected)");
+    }).fail(function(data) {
+        error(data.responseText);
     });
 }
 
@@ -29,7 +63,7 @@ function edit(wiki, page) {
 
     $.get("/wiki/" + wiki + "/" + page, function(data) {
         $("#content").val(data["content"]);
-    }).fail(function() {
-        error("cannot access API");
+    }).fail(function(data) {
+        error(data.responseText);
     });
 }

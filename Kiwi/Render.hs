@@ -32,6 +32,7 @@ skeleton title header body =
         H.title $ H.toHtml $ title
       H.body $ do
         H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
+        H.div H.! HA.id "dialog" $ ""
         H.div H.! HA.class_ "content" H.! HA.id "main" $ body
         H.hr
         H.footer $ do
@@ -56,6 +57,8 @@ wikiPage page =
                  " - "
                  H.a "versions" H.! HA.href (HI.stringValue versions)
                  " - "
+                 H.a "new page" H.! HA.href "#" H.! HA.onclick (HI.stringValue newPageFn)
+                 " - "
                  H.a "edit" H.! HA.id "action" H.! HA.href "#" H.! HA.onclick (HI.stringValue editFn))
              content
     where wname = show $ pWikiName page
@@ -64,6 +67,7 @@ wikiPage page =
           versions = pname ++ "_versions"
           content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
           editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
+          newPageFn = "newpage(\"" ++ wname ++ "\");"
 
 -- | A wiki page is renrderable
 instance Renderable Page where
@@ -76,7 +80,8 @@ instance Renderable Page where
 -- | Create a page listing all the pages contained in a wiki
 wikiPageList :: Wiki -> H.Html
 wikiPageList wiki =
-    skeleton name (H.h1 $ H.toHtml name)
+    skeleton name (do H.h1 $ H.toHtml name
+                      H.a "new page" H.! HA.href "#" H.! HA.onclick "newpage();")
              (H.ul $ forM_ pages pageLink)
     where name = show $ wName wiki
           pages = map fst $ wPages wiki
@@ -98,8 +103,6 @@ instance Renderable Wiki where
 indexPage :: Index -> H.Html
 indexPage content =
     skeleton (iTitle content) (do H.h1 $ H.toHtml $ iTitle content
-                                  H.input H.! HA.type_ "text" H.! HA.id "name"
-                                  " "
                                   H.a "create" H.! HA.href "#" H.! HA.onclick "create();")
              pageContent
     where pageContent = writeHtml def $ readMarkdown def $ iInfos content
