@@ -6,6 +6,8 @@ function create() {
     var name = $("#name").val();
     $.post("/wiki/" + name, function(data) {
         window.location.href = name + "/";
+    }).fail(function() {
+        error("cannot create wiki (API not available, invalid wiki name, or wiki already exists)");
     });
 }
 
@@ -13,6 +15,8 @@ function save(wiki, page) {
     var content = $("#content").val();
     $.post("/wiki/" + wiki + "/" + page, content, function(data) {
         location.reload()
+    }).fail(function() {
+        error("cannot save page (API not available or wiki is password-protected)");
     });
 }
 
