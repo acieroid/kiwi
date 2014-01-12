@@ -10,9 +10,11 @@ function create() {
 <input type=\"input\" id=\"name\"/><br/>\
 <input type=\"submit\" id=\"submit\" value=\"create!\"/>\
 </form>");
+    $("#dialog").show();
     $("#submit").click(function () {
         addwiki($("#name").val());
         $("#dialog").html("");
+        $("#dialog").hide();
     });
 }
 
@@ -23,9 +25,11 @@ function newpage(wiki) {
 <input type=\"input\" id=\"name\"/><br/>\
 <input type=\"submit\" id=\"submit\" value=\"create!\"/>\
 </form>");
+    $("#dialog").show();
     $("#submit").click(function () {
         addpage(wiki, $("#name").val());
         $("#dialog").html("");
+        $("#dialog").hide();
     });
 }
 

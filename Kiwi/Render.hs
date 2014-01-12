@@ -32,7 +32,7 @@ skeleton title header body =
         H.title $ H.toHtml $ title
       H.body $ do
         H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
-        H.div H.! HA.id "dialog" $ ""
+        H.div H.! HA.class_ "content" H.! HA.id "dialog" $ ""
         H.div H.! HA.class_ "content" H.! HA.id "main" $ body
         H.hr
         H.footer $ do

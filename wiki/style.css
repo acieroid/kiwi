@@ -130,3 +130,7 @@ textarea {
   border: 1px solid #cccccc;
   border-radius: 4px; 
 }
+
+#dialog {
+  display: none;
+}
