@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
 -- TODO: this module really needs some refactoring
 module Kiwi.Storage (
-  addWiki, editPage, getPage, getPageNames, Result(..)
+  addWiki, addPage, editPage, getPage, getPageNames, Result(..)
   ) where
 
 import qualified Data.ByteString.UTF8 as BSU
@@ -24,8 +24,8 @@ import Kiwi.Data
 data Result = Success
             | PasswordProtected
             | WrongPassword
-            | PageDoesNotExists
-            | WikiDoesNotExists
+            | PageDoesNotExist
+            | WikiDoesNotExist
             | AlreadyExists
             | ReturnPage Page
             | ReturnPageNames [ValidPageName]
@@ -83,8 +83,8 @@ increasePageId wid =
   incr (enc ["wiki.", show wid, ".pages.nextpid"]) >>= (return . fmap pred)
 
 -- | Check if a wiki exists
-doesWikiExists :: Functor f => RedisCtx m f => ValidWikiName -> m (f Bool)
-doesWikiExists name = do
+doesWikiExist :: Functor f => RedisCtx m f => ValidWikiName -> m (f Bool)
+doesWikiExist name = do
   wid <- getWikiId name
   return $ fmap (maybe False (\_ -> True)) wid
 
@@ -100,7 +100,7 @@ getPageNames name = do
   fmap ret $ runRedis conn $ do
     wid <- getWikiId name
     let f :: Maybe Integer -> Redis (Either Reply Result)
-        f = maybe (return $ (return WikiDoesNotExists))
+        f = maybe (return $ (return WikiDoesNotExist))
                       (\wid -> do res <- aux wid 0
                                   return $ fmap (ReturnPageNames . mapMaybe validatePageName) res)
     case wid of
@@ -126,7 +126,7 @@ addWiki name = do
   conn <- connect connectInfo
   date <- getZonedTime
   fmap ret $ runRedis conn $ do
-    exists <- doesWikiExists name
+    exists <- doesWikiExist name
     case exists of
       Right True -> return $ Right AlreadyExists
       Right False -> do
@@ -169,25 +169,55 @@ editPage name page = do
           version <- nextPageVersion wid pid
           case version of
             Right v ->
-                do ".name" ==> show (pName page)
-                   (".version." ++ show v ++ ".content") ==>> pContent page
+                do (".version." ++ show v ++ ".content") ==>> pContent page
                    (".version." ++ show v ++ ".date") ==> show date
                    ".current" ==> show v
                    ".latest" ==> show v
             Left err -> return $ Left err
           return $ Right Success
     case wid of
-      Right Nothing -> return $ Right WikiDoesNotExists
+      Right Nothing -> return $ Right WikiDoesNotExist
       Right (Just wid') ->
           do (pid :: Either Reply (Maybe Integer)) <- getPageId wid' (pName page)
-             (pid' :: Either Reply Integer) <- case pid of
-                                    Right Nothing -> increasePageId wid'
-                                    Right (Just x) -> return $ Right x
-                                    Left err -> return $ Left err
-             case pid' of
-               Right p -> editPage' wid' p
+             case pid of
+               Right Nothing -> return $ Right WikiDoesNotExist
+               Right (Just p) -> editPage' wid' p
                Left err -> return $ Left err
       Left err -> return $ Left err
+
+-- | Add a wiki page
+addPage :: ValidWikiName -> Page -> IO Result
+addPage name page = do
+  conn <- connect connectInfo
+  date <- getZonedTime
+  fmap ret $ runRedis conn $ do
+    wid <- getWikiId name
+    let editPage' :: Integer -> Integer -> Redis (Either Reply Result)
+        editPage' wid pid = do
+          let prefix = "wiki." ++ (show wid) ++ ".pages." ++ (show pid)
+          let (==>) suffix value = set (BSU.fromString $ prefix ++ suffix) (BSU.fromString value)
+          let (==>>) suffix value = set (BSU.fromString $ prefix ++ suffix) (TE.encodeUtf8 value)
+          let s suffix value = set (BSU.fromString $ "wiki." ++ (show wid) ++ suffix) (BSU.fromString value)
+          s (".pages.hashes." ++ (hash $ show $ pName page)) $ show pid
+          ".name" ==> show (pName page)
+          ".version.0.content" ==>> pContent page
+          ".version.0.date" ==> show date
+          ".current" ==> "0"
+          ".latest" ==> "0"
+          return $ Right Success
+    case wid of
+      Right Nothing -> return $ Right WikiDoesNotExist
+      Right (Just wid') ->
+          do (pid :: Either Reply (Maybe Integer)) <- getPageId wid' (pName page)
+             case pid of
+               Right Nothing -> do pid <- increasePageId wid'
+                                   case pid of 
+                                     Right p -> editPage' wid' p
+                                     Left err -> return $ Left err
+               Right (Just _) -> return $ Right AlreadyExists
+               Left err -> return $ Left err
+      Left err -> return $ Left err
+
 
 -- | Get the latest version of a wiki page
 getPage :: ValidWikiName -> ValidPageName -> IO Result
@@ -196,11 +226,11 @@ getPage wname pname = do
   fmap ret $ runRedis conn $ do
     wid <- getWikiId wname
     case wid of
-      Right Nothing -> return $ Right WikiDoesNotExists
+      Right Nothing -> return $ Right WikiDoesNotExist
       Right (Just wid) ->
           do pid <- getPageId wid pname
              case pid of
-               Right Nothing -> return $ Right PageDoesNotExists
+               Right Nothing -> return $ Right PageDoesNotExist
                Right (Just pid) ->
                    do let prefix = "wiki." ++ show wid ++ ".pages." ++ show pid
                       let build :: Int -> Maybe BSU.ByteString -> Result

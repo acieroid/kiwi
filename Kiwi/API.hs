@@ -75,9 +75,9 @@ buildResult S.PasswordProtected =
     build statusPasswordProtected $ failure "Missing Password"
 buildResult S.WrongPassword =
     build statusPasswordProtected $ failure "Incorrect Password"
-buildResult S.PageDoesNotExists =
+buildResult S.PageDoesNotExist =
     build status404 $ failure "Page Not Found"
-buildResult S.WikiDoesNotExists =
+buildResult S.WikiDoesNotExist =
     build status404 $ failure "Wiki Not Found"
 buildResult S.AlreadyExists =
     build statusAlreadyExists $ failure "Already Exists"
@@ -136,11 +136,23 @@ editWikiPage :: T.Text -> T.Text -> Request -> IO Response
 editWikiPage wname pname req = do
   content <- lazyRequestBody req
   let strictContent = B.concat $ BL.toChunks content
-  response <- withPageName (\w p -> S.editPage w
-                                    (Page { pVersion = 0
-                                          , pName = p
-                                          , pWikiName = w
-                                          , pContent = TE.decodeUtf8 strictContent }))
-                           wname pname
-  ifNecessary (renderPage (T.unpack wname) (T.unpack pname))
-  return response
+  if B.null strictContent then
+      -- New page
+      do response <- withPageName (\w p -> S.addPage w
+                                           (Page { pVersion = 0
+                                                 , pName = p
+                                                 , pWikiName = w
+                                                 , pContent = T.pack "This page is currently empty" }))
+                                  wname pname
+         -- TODO: only wiki index & new page are necessary
+         ifNecessary (renderWiki (T.unpack wname))
+         return response
+  else
+      do response <- withPageName (\w p -> S.editPage w
+                                           (Page { pVersion = 0
+                                                 , pName = p
+                                                 , pWikiName = w
+                                                 , pContent = TE.decodeUtf8 strictContent }))
+                                  wname pname
+         ifNecessary (renderPage (T.unpack wname) (T.unpack pname))
+         return response
