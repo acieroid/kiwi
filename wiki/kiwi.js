@@ -35,7 +35,7 @@ function newpage(wiki) {
 
 function addwiki(name) {
     $.post("/wiki/" + name, function(data) {
-        window.location.href = name + "/";
+        window.location.href = "/" + name + "/";
     }).fail(function(data) {
         error(data.responseText);
     });
@@ -43,7 +43,7 @@ function addwiki(name) {
 
 function addpage(wiki, name) {
     $.post("/wiki/" + wiki + "/" + name, function(data) {
-        window.location.href = wiki + "/" + name;
+        window.location.href = "/" + wiki + "/" + name;
     }).fail(function(data) {
         error(data.responseText);
     });
