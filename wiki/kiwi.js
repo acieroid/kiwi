@@ -1,6 +1,13 @@
 function error(msg) {
-    // TODO: neatly display this message
     alert("Error: " + msg);
+}
+
+function handle_json_error(err) {
+    try {
+        error(JSON.parse(err.responseText).reason);
+    } catch (e) {
+        error("cannot parse response: " + e);
+    }
 }
 
 function create() {
@@ -36,26 +43,20 @@ function newpage(wiki) {
 function addwiki(name) {
     $.post("/wiki/" + name, function(data) {
         window.location.href = "/" + name + "/";
-    }).fail(function(data) {
-        error(data.responseText);
-    });
+    }).fail(handle_json_error);
 }
 
 function addpage(wiki, name) {
     $.post("/wiki/" + wiki + "/" + name, function(data) {
         window.location.href = "/" + wiki + "/" + name;
-    }).fail(function(data) {
-        error(data.responseText);
-    });
+    }).fail(handle_json_error);
 }
 
 function save(wiki, page) {
     var content = $("#content").val();
     $.post("/wiki/" + wiki + "/" + page, content, function(data) {
         location.reload()
-    }).fail(function(data) {
-        error(data.responseText);
-    });
+    }).fail(handle_json_error);
 }
 
 function edit(wiki, page) {
@@ -67,7 +68,5 @@ function edit(wiki, page) {
 
     $.get("/wiki/" + wiki + "/" + page, function(data) {
         $("#content").val(data["content"]);
-    }).fail(function(data) {
-        error(data.responseText);
-    });
+    }).fail(handle_json_error);
 }
