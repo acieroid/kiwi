@@ -4,7 +4,7 @@
 name:                kiwi
 version:             0.1.0
 synopsis:            A wiki manager
--- description:         
+description:         A wiki manager
 homepage:            http://github.com/acieroid/kiwi
 license:             BSD3
 license-file:        LICENSE
@@ -15,6 +15,10 @@ category:            Web
 build-type:          Simple
 extra-source-files:  README.org
 cabal-version:       >=1.10
+
+source-repository head
+  type:                git
+  location:            http://github.com/acieroid/kiwi
 
 executable kiwi
   main-is:             Main.hs
