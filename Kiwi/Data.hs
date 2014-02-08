@@ -40,14 +40,14 @@ data Page = Page {
 examplePage :: Page
 examplePage =
     Page { pVersion = 1
-         , pName = case validatePageName "index" of
-                     Just n -> n
-                     Nothing -> error "Invalid page name: index"
-         , pWikiName = case validateWikiName "example" of
-                         Just n -> n
-                         Nothing -> error "Invalid wiki name: example"
+         , pName = ValidPageName "index"
+         , pWikiName = ValidWikiName "example"
          , pContent = "Hello, *world* !"
          }
+
+-- | Name of the index page
+indexPageName :: ValidPageName
+indexPageName = ValidPageName "index"
 
 -- | Possible access modes of a wiki
 data AccessMode = ReadWrite     -- ^ Read and write for everybody
@@ -83,9 +83,7 @@ data Wiki = Wiki {
 -- | Example wiki
 exampleWiki :: Wiki
 exampleWiki =
-    Wiki { wName = case validateWikiName "example" of
-                     Just n -> n
-                     Nothing -> error "Invalid wiki name: example"
+    Wiki { wName = ValidWikiName "example"
          , wPages = [(pName examplePage, examplePage)]
          , wAccess = ReadWrite
          , wPassword = Nothing
