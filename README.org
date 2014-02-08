@@ -3,7 +3,16 @@ Kiwi is a simple wiki system similar to the currently defunct
 couch.it: everyone can create a new wiki (maybe protected by a
 password), composed by a set of pages. No authentication is required,
 and all the changes are kept permanently.
-
+* Compilation
+#+BEGIN_SRC shell
+$ cabal install --only-dependencies
+$ cabal configure
+$ cabal build
+#+END_SRC
+* Launching
+#+BEGIN_SRC shell
+$ cabal run
+#+END_SRC
 * Architecture
 Kiwi has two main components: the rendering engine and the editing
 engine. The rendering engine simply generates static html pages from
