@@ -5,6 +5,7 @@ module Kiwi.Storage (
   Error(..)
   ) where
 
+import Control.Applicative ((<$>))
 import Control.Monad (forM_, unless)
 import qualified Crypto.Hash.SHA1 as SHA1
 import qualified Data.ByteString.Lazy as BSL
@@ -221,6 +222,19 @@ getPageId db wid pname = do
        where extract [] = Nothing
              extract (hd:_) = Just (hd ! pageId)
 
+-- | Get the latest version of a page given a wiki id and page
+-- id. Assume the page exists (fails if it is not the case)
+getPageLatestVersion :: Database -> Int -> Int -> IO Int
+getPageLatestVersion db wid pid = do
+  fmap extract $
+       query db $ do
+         pages <- table pageTable
+         restrict $ pages ! wikiId .==. constant wid .&&.
+                    pages ! pageId .==. constant pid
+         project $ pageLatestVersion << pages ! pageLatestVersion
+      where extract [] = error "getPageLatestVersion called with a non existent page"
+            extract (hd:_) = hd ! pageLatestVersion
+
 -- | Execute an action inside a db transaction
 withDB :: (Database -> IO a) -> IO a
 withDB action = hdbcConnect generator (connectSqlite3 dbPath)
@@ -280,7 +294,29 @@ addPage wname page = do
                                  (\_ -> return (Just PageAlreadyExists))))))
 
 -- | Edit a wiki page
--- editPage :: ValidWikiName -> Page -> IO (Maybe Error)
+editPage :: ValidWikiName -> Page -> IO (Maybe Error)
+editPage wname page = do
+  withDB (\db ->
+            getWikiId db wname >>=
+              (maybe (return (Just WikiDoesNotExist))
+                     (\wid ->
+                        (getPageId db wid $ pName page) >>=
+                          (maybe (return (Just PageDoesNotExist))
+                                 (\pid -> do
+                                    version <- succ <$> getPageLatestVersion db wid pid
+                                    insert db pageVersionTable
+                                           ( wikiId <<- wid
+                                           # pageId <<- pid
+                                           # pageVersion <<- version
+                                           # pageContent <<- pContent page
+                                           )
+                                    update db pageTable
+                                           (\page -> page ! wikiId .==. constant wid .&&.
+                                                     page ! pageId .==. constant pid)
+                                           (\page -> pageVersion << constant version
+                                                   # pageLatestVersion << constant version)
+                                    return Nothing)))))
+
 
 -- | Get the latest version of a wiki page
 -- getPage :: ValidWikiName -> ValidPageName -> IO (Either Error Page)
