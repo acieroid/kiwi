@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Kiwi.Data (
-  ValidPageName, validatePageName, Page(..), examplePage,
-  AccessMode(..), ValidWikiName, validateWikiName, Wiki(..), exampleWiki,
-  Index(..), index
+  AccessMode(..), Index(..), examplePage, exampleWiki, index, indexPageName,
+  Page(..), ValidPageName, validatePageName, ValidWikiName, validateWikiName,
+  Wiki(..)
   ) where
 
 import qualified Data.Text as T

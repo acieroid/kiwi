@@ -34,7 +34,10 @@ executable kiwi
                        , directory
                        , enumerator
                        , filepath
-                       , hedis
+                       , haskelldb
+                       , haskelldb-hdbc
+                       , HDBC
+                       , HDBC-sqlite3
                        , http-streams
                        , http-types
                        , io-streams
