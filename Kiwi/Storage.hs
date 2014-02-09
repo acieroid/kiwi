@@ -27,11 +27,11 @@ import Kiwi.Data
 
 data Error = PasswordProtected
            | WrongPassword
+           | WikiDoesNotExist
            | PageDoesNotExist
            | VersionDoesNotExist
-           | WikiDoesNotExist
-           | AlreadyExists
-           | Error String
+           | WikiAlreadyExists
+           | PageAlreadyExists
              deriving (Show, Eq)
 
 dbPath :: FilePath
@@ -81,13 +81,6 @@ createTablesIfNecessary = do
                    "                          foreign key (pid) references page(pid))"]]
                  (\table -> handleSqlError $ quickQuery' db table [])
   commit db
-
--- | Last inserted id
-lastInsertedId :: Database -> IO Int
-lastInsertedId db = do
-  fmap ((\res -> res ! wikiId) . head) $
-       query db $ do
-         project $ wikiId << Expr (ConstExpr (OtherLit "last_insert_rowid()"))
 
 -- | The unique identifier of a wiki
 data WikiID = WikiID
@@ -154,7 +147,10 @@ data PageContent = PageContent
 instance FieldTag PageContent where
     fieldName = const "pcontent"
 
-pageContent :: Attr PageContent String
+instance ShowConstant T.Text where
+    showConstant = StringLit . T.unpack
+
+pageContent :: Attr PageContent T.Text
 pageContent = mkAttr PageContent
 
 -- | Wiki table
@@ -184,13 +180,46 @@ pageTable = baseTable "page"
 pageVersionTable :: Table (RecCons WikiID (Expr Int)
                            (RecCons PageID (Expr Int)
                             (RecCons PageVersion (Expr Int)
-                             (RecCons PageContent (Expr String)
+                             (RecCons PageContent (Expr T.Text)
                               RecNil))))
 pageVersionTable = baseTable "pageversion"
                    $ hdbMakeEntry WikiID
                    # hdbMakeEntry PageID
                    # hdbMakeEntry PageVersion
                    # hdbMakeEntry PageContent
+
+-- | Get the last inserted id
+lastInsertedId :: Database -> IO Int
+lastInsertedId db = do
+  fmap extract $
+       query db $ do
+         -- We use wikiId but it is really an integer that can
+         -- represent anything
+         project $ wikiId << Expr (ConstExpr (OtherLit "last_insert_rowid()"))
+    where extract = (\res -> res ! wikiId) . head
+
+-- | Try to get a wiki id given its name
+getWikiId :: Database -> ValidWikiName -> IO (Maybe Int)
+getWikiId db wname = do
+  fmap extract $
+       query db $ do
+         wikis <- table wikiTable
+         restrict $ wikis ! wikiName .==. constant wname
+         project $ wikiId << wikis ! wikiId
+    where extract [] = Nothing
+          extract (hd:_) = Just (hd ! wikiId)
+
+-- | Try to get a page id given a wiki id and the page name
+getPageId :: Database -> Int -> ValidPageName -> IO (Maybe Int)
+getPageId db wid pname = do
+  fmap extract $
+       query db $ do
+         pages <- table pageTable
+         restrict $ pages ! wikiId .==. constant wid .&&.
+                    pages ! pageName .==. constant pname
+         project $ pageId << pages ! pageId
+       where extract [] = Nothing
+             extract (hd:_) = Just (hd ! pageId)
 
 -- | Execute an action inside a db transaction
 withDB :: (Database -> IO a) -> IO a
