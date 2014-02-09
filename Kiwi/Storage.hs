@@ -238,12 +238,12 @@ addWiki wname = do
             wid <- lastInsertedId db
             putStrLn $ ("wid: " ++ show wid)
             insert db pageTable
-                    ( wikiId <<- wid
-                    # pageId << _default
-                    # pageName <<- indexPageName
-                    # pageVersion <<- 0
-                    # pageLatestVersion <<- 0
-                    )
+                   ( wikiId <<- wid
+                   # pageId << _default
+                   # pageName <<- indexPageName
+                   # pageVersion <<- 0
+                   # pageLatestVersion <<- 0
+                   )
             pid <- lastInsertedId db
             insert db pageVersionTable
                    ( wikiId << constant wid
@@ -254,7 +254,30 @@ addWiki wname = do
             return Nothing)
 
 -- | Add a wiki page
--- addPage :: ValidWikiName -> Page -> IO (Maybe Error)
+addPage :: ValidWikiName -> Page -> IO (Maybe Error)
+addPage wname page = do
+  withDB (\db ->
+            getWikiId db wname >>=
+              (maybe (return (Just WikiDoesNotExist))
+                     (\wid ->
+                        (getPageId db wid $ pName page) >>=
+                          (maybe (do
+                                   insert db pageTable
+                                          ( wikiId <<- wid
+                                          # pageId << _default
+                                          # pageName <<- pName page
+                                          # pageVersion <<- 0
+                                          # pageLatestVersion <<- 0
+                                          )
+                                   pid <- lastInsertedId db
+                                   insert db pageVersionTable
+                                          ( wikiId <<- wid
+                                          # pageId <<- pid
+                                          # pageVersion <<- 0
+                                          # pageContent <<- pContent page
+                                          )
+                                   return Nothing)
+                                 (\_ -> return (Just PageAlreadyExists))))))
 
 -- | Edit a wiki page
 -- editPage :: ValidWikiName -> Page -> IO (Maybe Error)
