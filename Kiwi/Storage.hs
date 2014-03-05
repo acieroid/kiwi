@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
 module Kiwi.Storage (
-  addWiki, --addPage, editPage, getPage, getPageNames, getPageVersions,
+  addWiki, addPage, editPage, getPage, -- getPageNames, getPageVersions,
   createTablesIfNecessary,
   Error(..)
   ) where
@@ -15,6 +15,7 @@ import qualified Data.ByteString.UTF8 as BSU
 import Data.ByteString.Internal (w2c)
 import qualified Data.Text as T
 import Database.HaskellDB
+import Database.HaskellDB.Database (GetValue, getString, getValue)
 import Database.HaskellDB.DBLayout
 import Database.HaskellDB.HDBRec
 import Database.HaskellDB.HDBC
@@ -33,6 +34,7 @@ data Error = PasswordProtected
            | VersionDoesNotExist
            | WikiAlreadyExists
            | PageAlreadyExists
+           | AbnormalError
              deriving (Show, Eq)
 
 dbPath :: FilePath
@@ -104,6 +106,13 @@ wikiName = mkAttr WikiName
 instance ShowConstant ValidWikiName where
     showConstant = StringLit . show
 
+instance GetValue ValidWikiName where
+    getValue fs s f =
+        getString fs s f >>=
+        (maybe (fail "Cannot extract valid wiki name")
+         ((maybe (fail "Invalid wiki name") return) .
+          validateWikiName . T.pack))
+
 -- | The unique identifier of a page
 data PageID = PageID
 
@@ -143,6 +152,13 @@ pageName = mkAttr PageName
 instance ShowConstant ValidPageName where
     showConstant = StringLit . show
 
+instance GetValue ValidPageName where
+    getValue fs s f =
+        getString fs s f >>=
+        (maybe (fail "Cannot extract valid page name")
+         ((maybe (fail "Invalid page name") return) .
+          validatePageName . T.pack))
+
 data PageContent = PageContent
 
 instance FieldTag PageContent where
@@ -150,6 +166,12 @@ instance FieldTag PageContent where
 
 instance ShowConstant T.Text where
     showConstant = StringLit . T.unpack
+
+instance GetValue T.Text where
+    getValue fs s f =
+      getString fs s f >>=
+      (maybe (fail "Cannot extract text")
+       (return . T.pack))
 
 pageContent :: Attr PageContent T.Text
 pageContent = mkAttr PageContent
@@ -318,8 +340,37 @@ editPage wname page = do
                                     return Nothing)))))
 
 
--- | Get the latest version of a wiki page
--- getPage :: ValidWikiName -> ValidPageName -> IO (Either Error Page)
+-- | Get the current version of a wiki page
+getPage :: ValidWikiName -> ValidPageName -> IO (Either Error Page)
+getPage wname pname = do
+  withDB (\db ->
+          getWikiId db wname >>=
+          (maybe (return (Left WikiDoesNotExist))
+                 (\wid ->
+                  getPageId db wid pname >>=
+                  (maybe (return (Left PageDoesNotExist))
+                   (\pid -> fmap extract $
+                            query db $ do
+                              page <- table pageTable
+                              version <- table pageVersionTable
+                              wiki <- table wikiTable
+                              restrict $ (wiki ! wikiId .==. constant wid .&&.
+                                          page ! wikiId .==. constant wid .&&.
+                                          version ! wikiId .==. constant wid .&&.
+                                          page ! pageId .==. constant pid .&&.
+                                          version ! pageId .==. constant pid .&&.
+                                          version ! pageVersion .==. page ! pageVersion)
+                              project $ wikiName << wiki ! wikiName
+                                      # pageVersion << page ! pageVersion
+                                      # pageName << page ! pageName
+                                      # pageContent << version ! pageContent)))))
+  where extract [] = Left AbnormalError
+        extract (hd:_) = Right (Page
+                                      { pVersion = hd ! pageVersion
+                                      , pName = hd ! pageName
+                                      , pWikiName = hd ! wikiName
+                                      , pContent = hd ! pageContent
+                                      })
 
 -- | Return the list of page names for a wiki
 -- getPageNames :: ValidWikiName -> IO (Either Error [ValidPageName])
