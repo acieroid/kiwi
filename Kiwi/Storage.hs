@@ -418,4 +418,23 @@ getPageVersion wname pname v = do
                                     })
 
 -- | Get the existing version numbers of a page
--- getPageVersions :: ValidWikiName -> ValidPageName -> IO (Either Error [Integer])
+getPageVersions :: ValidWikiName -> ValidPageName -> IO (Either Error [Int])
+getPageVersions wname pname = do
+  withDB (\db ->
+          getWikiId db wname >>=
+          (maybe (return (Left WikiDoesNotExist))
+           (\wid ->
+            getPageId db wid pname >>=
+            (maybe (return (Left PageDoesNotExist))
+             (\pid -> fmap extract $
+                      query db $ do
+                        page <- table pageTable
+                        version <- table pageVersionTable
+                        wiki <- table wikiTable
+                        restrict $ (wiki ! wikiId .==. constant wid .&&.
+                                    page ! wikiId .==. constant wid .&&.
+                                    version ! wikiId .==. constant wid .&&.
+                                    page ! pageId .==. constant pid .&&.
+                                    version ! pageId .==. constant pid)
+                        project $ pageVersion << version ! pageVersion)))))
+      where extract = Right . map (! pageVersion)
