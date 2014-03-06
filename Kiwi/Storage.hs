@@ -373,7 +373,18 @@ getPage wname pname = do
                                       })
 
 -- | Return the list of page names for a wiki
--- getPageNames :: ValidWikiName -> IO (Either Error [ValidPageName])
+getPageNames :: ValidWikiName -> IO (Either Error [ValidPageName])
+getPageNames wname = do
+  withDB (\db ->
+          getWikiId db wname >>=
+          (maybe (return (Left WikiDoesNotExist))
+           (\wid ->
+            fmap extract $
+            query db $ do
+              page <- table pageTable
+              restrict $ (page ! wikiId .==. constant wid)
+              project $ pageName << page ! pageName)))
+  where extract = Right . map (! pageName)
 
 -- | Get a given version of a page
 -- getPageVersion :: ValidWikiName -> ValidPageName -> Int -> IO (Either Error Page)
