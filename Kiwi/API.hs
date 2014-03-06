@@ -68,10 +68,10 @@ failure :: T.Text -> Value
 failure reason = object [ "result" .= ("failure" :: T.Text)
                         , "reason" .= reason ] 
 
-buildResult :: (a -> Value) -> S.Result a -> Response
-buildResult f (Right x) =
-    build status200 (f x)
-buildResult _ (Left err) =
+buildResult :: ToJSON a => S.Result a -> Response
+buildResult (Right x) =
+    build status200 x
+buildResult (Left err) =
     build s $ failure msg
     where (s, msg) =
               case err of
@@ -89,21 +89,21 @@ notFound = build status404 $ failure "Not Found"
 notImplemented :: Response
 notImplemented = build status404 $ failure "Not Implemented (...yet)"
 
-withWikiName :: (ValidWikiName -> IO (S.Result a)) -> T.Text -> IO Response
+withWikiName :: ToJSON a => (ValidWikiName -> IO (S.Result a)) -> T.Text -> IO Response
 withWikiName action wname =
     maybe (return $ build statusInvalidName $
                   failure $ T.concat ["Invalid wiki name: ", wname])
-          (\name -> action name >>= (return . buildResult (\_ -> success)))
+          (\name -> action name >>= (return . buildResult))
           (validateWikiName wname)
 
-withPageName :: (ValidWikiName -> ValidPageName -> IO (S.Result a)) -> T.Text -> T.Text -> IO Response
+withPageName :: ToJSON a => (ValidWikiName -> ValidPageName -> IO (S.Result a)) -> T.Text -> T.Text -> IO Response
 withPageName action wname pname =
     maybe (return $ build statusInvalidName $
                   failure $ T.concat ["Invalid wiki name: ", wname])
           (\w -> maybe (return $ build statusInvalidName $
                                failure $ T.concat ["Invalid page name: ", pname])
                        (\p -> action w p >>=
-                              (return . buildResult (\_ -> success)))
+                              (return . buildResult))
                        (validatePageName pname))
           (validateWikiName wname)
 
@@ -114,9 +114,12 @@ ifNecessary action = do
     Config.ServerAndAPI -> action
     _ -> return ()
 
+toSuccess :: S.Result a -> S.Result Value
+toSuccess = fmap (const success)
+
 addWiki :: T.Text -> Request -> IO Response
 addWiki wname req = do
-    response <- withWikiName S.addWiki wname
+    response <- withWikiName ((fmap toSuccess) . S.addWiki) wname
     ifNecessary (renderWiki $ T.unpack wname)
     return response
 
