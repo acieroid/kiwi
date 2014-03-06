@@ -364,13 +364,13 @@ getPage wname pname = do
                                       # pageVersion << page ! pageVersion
                                       # pageName << page ! pageName
                                       # pageContent << version ! pageContent)))))
-  where extract [] = Left AbnormalError
-        extract (hd:_) = Right (Page
-                                      { pVersion = hd ! pageVersion
-                                      , pName = hd ! pageName
-                                      , pWikiName = hd ! wikiName
-                                      , pContent = hd ! pageContent
-                                      })
+      where extract [] = Left AbnormalError
+            extract (hd:_) = Right (Page
+                                    { pVersion = hd ! pageVersion
+                                    , pName = hd ! pageName
+                                    , pWikiName = hd ! wikiName
+                                    , pContent = hd ! pageContent
+                                    })
 
 -- | Return the list of page names for a wiki
 getPageNames :: ValidWikiName -> IO (Either Error [ValidPageName])
@@ -384,10 +384,38 @@ getPageNames wname = do
               page <- table pageTable
               restrict $ (page ! wikiId .==. constant wid)
               project $ pageName << page ! pageName)))
-  where extract = Right . map (! pageName)
+      where extract = Right . map (! pageName)
 
 -- | Get a given version of a page
--- getPageVersion :: ValidWikiName -> ValidPageName -> Int -> IO (Either Error Page)
+getPageVersion :: ValidWikiName -> ValidPageName -> Int -> IO (Either Error Page)
+getPageVersion wname pname v = do
+  withDB (\db ->
+          getWikiId db wname >>=
+          (maybe (return (Left WikiDoesNotExist))
+           (\wid ->
+            getPageId db wid pname >>=
+            (maybe (return (Left PageDoesNotExist))
+             (\pid -> fmap extract $
+                      query db $ do
+                        page <- table pageTable
+                        version <- table pageVersionTable
+                        wiki <- table wikiTable
+                        restrict $ (wiki ! wikiId .==. constant wid .&&.
+                                    page ! wikiId .==. constant wid .&&.
+                                    version ! wikiId .==. constant wid .&&.
+                                    page ! pageId .==. constant pid .&&.
+                                    version ! pageId .==. constant pid .&&.
+                                    version ! pageVersion .==. constant v)
+                        project $ wikiName << wiki ! wikiName
+                                # pageName << page ! pageName
+                                # pageContent << version ! pageContent)))))
+      where extract [] = Left VersionDoesNotExist
+            extract (hd:_) = Right (Page
+                                    { pVersion = v
+                                    , pName = hd ! pageName
+                                    , pWikiName = hd ! wikiName
+                                    , pContent = hd ! pageContent
+                                    })
 
 -- | Get the existing version numbers of a page
 -- getPageVersions :: ValidWikiName -> ValidPageName -> IO (Either Error [Integer])
