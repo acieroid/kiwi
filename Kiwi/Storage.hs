@@ -268,28 +268,32 @@ withDB action = hdbcConnect generator (connectSqlite3 dbPath)
 -- TODO: catch error
 addWiki :: ValidWikiName -> IO (Result ())
 addWiki wname = do
-  withDB (\db -> do
-            insert db wikiTable
-                   ( wikiId << _default
-                   # wikiName <<- wname
-                   )
-            wid <- lastInsertedId db
-            putStrLn $ ("wid: " ++ show wid)
-            insert db pageTable
-                   ( wikiId <<- wid
-                   # pageId << _default
-                   # pageName <<- indexPageName
-                   # pageVersion <<- 0
-                   # pageLatestVersion <<- 0
-                   )
-            pid <- lastInsertedId db
-            insert db pageVersionTable
-                   ( wikiId << constant wid
-                   # pageId << constant pid
-                   # pageVersion <<- 0
-                   # pageContent <<- "Empty page"
-                   )
-            return (Right ()))
+  withDB (\db ->
+          getWikiId db wname >>=
+          (maybe
+           (do
+             insert db wikiTable
+                    ( wikiId << _default
+                    # wikiName <<- wname
+                    )
+             wid <- lastInsertedId db
+             putStrLn $ ("wid: " ++ show wid)
+             insert db pageTable
+                    ( wikiId <<- wid
+                    # pageId << _default
+                    # pageName <<- indexPageName
+                    # pageVersion <<- 0
+                    # pageLatestVersion <<- 0
+                    )
+             pid <- lastInsertedId db
+             insert db pageVersionTable
+                    ( wikiId << constant wid
+                    # pageId << constant pid
+                    # pageVersion <<- 0
+                    # pageContent <<- "Empty page"
+                    )
+             return (Right ()))
+           (\_ -> return (Left WikiAlreadyExists))))
 
 -- | Add a wiki page
 addPage :: ValidWikiName -> Page -> IO (Result ())
