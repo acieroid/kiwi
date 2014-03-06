@@ -5,7 +5,7 @@ import Control.Monad (forM_)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.IO as TextIO
-import System.Directory (createDirectoryIfMissing)
+import System.Directory (createDirectoryIfMissing, copyFile)
 import System.FilePath.Posix ((</>), FilePath)
 import Text.Pandoc.Options (def)
 import Text.Pandoc.Readers.Markdown (readMarkdown)
@@ -69,13 +69,23 @@ wikiPage page =
           editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
           newPageFn = "newpage(\"" ++ wname ++ "\");"
 
+
+pageFile :: FilePath -> Page -> FilePath
+pageFile dir page =
+    dir </> (show $ pName page)
+
+pageVersionFile :: FilePath -> Page -> FilePath
+pageVersionFile dir page =
+    (pageFile dir page) ++ "." ++ (show $ pVersion page)
+
 -- | A wiki page is renrderable
 instance Renderable Page where
     render dir page = do
       putStrLn ("Generating page " ++ (show $ pName page) ++
-                " in " ++ show pageFile)
-      TextIO.writeFile pageFile $ renderMarkup $ wikiPage page
-      where pageFile = dir </> (show $ pName page)
+                " in " ++ show (pageVersionFile dir page))
+      TextIO.writeFile (pageVersionFile dir page) $ renderMarkup $ wikiPage page
+      -- This it now the current version
+      copyFile (pageVersionFile dir page) (pageFile dir page)
 
 -- | Create a page listing all the pages contained in a wiki
 wikiPageList :: Wiki -> H.Html
@@ -95,7 +105,8 @@ instance Renderable Wiki where
                 " in " ++ show wikiDir)
       createDirectoryIfMissing True wikiDir
       TextIO.writeFile pageListFile $ renderMarkup $ wikiPageList wiki
-      mapM_ (\(name, page) -> render wikiDir page) $ wPages wiki
+      mapM_ (\(name, page) -> do
+               render wikiDir page) $ wPages wiki
       where wikiDir = dir </> (show $ wName wiki)
             pageListFile = wikiDir </> "_pages"
 
