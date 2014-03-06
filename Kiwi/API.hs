@@ -68,25 +68,20 @@ failure :: T.Text -> Value
 failure reason = object [ "result" .= ("failure" :: T.Text)
                         , "reason" .= reason ] 
 
-buildResult :: S.Result -> Response
-buildResult S.Success =
-    build status200 success
-buildResult S.PasswordProtected =
-    build statusPasswordProtected $ failure "Missing Password"
-buildResult S.WrongPassword =
-    build statusPasswordProtected $ failure "Incorrect Password"
-buildResult S.PageDoesNotExist =
-    build status404 $ failure "Page Not Found"
-buildResult S.WikiDoesNotExist =
-    build status404 $ failure "Wiki Not Found"
-buildResult S.AlreadyExists =
-    build statusAlreadyExists $ failure "Already Exists"
-buildResult (S.ReturnPage page) =
-    build status200 page
-buildResult (S.ReturnPageNames names) =
-    build status200 names
-buildResult (S.Error err) =
-    build status500 $ failure $ T.pack err
+buildResult :: (a -> Value) -> S.Result a -> Response
+buildResult f (Right x) =
+    build status200 (f x)
+buildResult _ (Left err) =
+    build s $ failure msg
+    where (s, msg) =
+              case err of
+                S.PasswordProtected -> (statusPasswordProtected, "Missing Password")
+                S.WrongPassword -> (statusPasswordProtected, "Incorrect Password")
+                S.PageDoesNotExist -> (status404, "Page Not Found")
+                S.WikiDoesNotExist -> (status404, "Wiki Not Found")
+                S.WikiAlreadyExists -> (statusAlreadyExists, "Wiki Already Exists")
+                S.PageAlreadyExists -> (statusAlreadyExists, "Page Already Exists")
+                S.AbnormalError -> (status500, "Unexpected Error")
 
 notFound :: Response
 notFound = build status404 $ failure "Not Found"
@@ -94,20 +89,21 @@ notFound = build status404 $ failure "Not Found"
 notImplemented :: Response
 notImplemented = build status404 $ failure "Not Implemented (...yet)"
 
-withWikiName :: (ValidWikiName -> IO S.Result) -> T.Text -> IO Response
+withWikiName :: (ValidWikiName -> IO (S.Result a)) -> T.Text -> IO Response
 withWikiName action wname =
     maybe (return $ build statusInvalidName $
                   failure $ T.concat ["Invalid wiki name: ", wname])
-          (\name -> action name >>= (return . buildResult))
+          (\name -> action name >>= (return . buildResult (\_ -> success)))
           (validateWikiName wname)
 
-withPageName :: (ValidWikiName -> ValidPageName -> IO S.Result) -> T.Text -> T.Text -> IO Response
+withPageName :: (ValidWikiName -> ValidPageName -> IO (S.Result a)) -> T.Text -> T.Text -> IO Response
 withPageName action wname pname =
     maybe (return $ build statusInvalidName $
                   failure $ T.concat ["Invalid wiki name: ", wname])
           (\w -> maybe (return $ build statusInvalidName $
                                failure $ T.concat ["Invalid page name: ", pname])
-                       (\p -> action w p >>= (return . buildResult))
+                       (\p -> action w p >>=
+                              (return . buildResult (\_ -> success)))
                        (validatePageName pname))
           (validateWikiName wname)
 

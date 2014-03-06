@@ -1,8 +1,8 @@
 {-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
 module Kiwi.Storage (
-  addWiki, addPage, editPage, getPage, -- getPageNames, getPageVersions,
+  addWiki, addPage, editPage, getPage, getPageNames, getPageVersions,
   createTablesIfNecessary,
-  Error(..)
+  Error(..), Result(..)
   ) where
 
 import Control.Applicative ((<$>))
@@ -26,6 +26,8 @@ import Database.HDBC
 import Database.HDBC.Sqlite3 (connectSqlite3)
 
 import Kiwi.Data
+
+type Result a = Either Error a
 
 data Error = PasswordProtected
            | WrongPassword
@@ -264,7 +266,7 @@ withDB action = hdbcConnect generator (connectSqlite3 dbPath)
 
 -- | Create a new wiki, if it does not exists yet
 -- TODO: catch error
-addWiki :: ValidWikiName -> IO (Maybe Error)
+addWiki :: ValidWikiName -> IO (Result ())
 addWiki wname = do
   withDB (\db -> do
             insert db wikiTable
@@ -287,14 +289,14 @@ addWiki wname = do
                    # pageVersion <<- 0
                    # pageContent <<- "Empty page"
                    )
-            return Nothing)
+            return (Right ()))
 
 -- | Add a wiki page
-addPage :: ValidWikiName -> Page -> IO (Maybe Error)
+addPage :: ValidWikiName -> Page -> IO (Result ())
 addPage wname page = do
   withDB (\db ->
             getWikiId db wname >>=
-              (maybe (return (Just WikiDoesNotExist))
+              (maybe (return (Left WikiDoesNotExist))
                      (\wid ->
                         (getPageId db wid $ pName page) >>=
                           (maybe (do
@@ -312,18 +314,18 @@ addPage wname page = do
                                           # pageVersion <<- 0
                                           # pageContent <<- pContent page
                                           )
-                                   return Nothing)
-                                 (\_ -> return (Just PageAlreadyExists))))))
+                                   return (Right ()))
+                                 (\_ -> return (Left PageAlreadyExists))))))
 
 -- | Edit a wiki page
-editPage :: ValidWikiName -> Page -> IO (Maybe Error)
+editPage :: ValidWikiName -> Page -> IO (Result ())
 editPage wname page = do
   withDB (\db ->
             getWikiId db wname >>=
-              (maybe (return (Just WikiDoesNotExist))
+              (maybe (return (Left WikiDoesNotExist))
                      (\wid ->
                         (getPageId db wid $ pName page) >>=
-                          (maybe (return (Just PageDoesNotExist))
+                          (maybe (return (Left PageDoesNotExist))
                                  (\pid -> do
                                     version <- succ <$> getPageLatestVersion db wid pid
                                     insert db pageVersionTable
@@ -337,11 +339,11 @@ editPage wname page = do
                                                      page ! pageId .==. constant pid)
                                            (\page -> pageVersion << constant version
                                                    # pageLatestVersion << constant version)
-                                    return Nothing)))))
+                                    return (Right ()))))))
 
 
 -- | Get the current version of a wiki page
-getPage :: ValidWikiName -> ValidPageName -> IO (Either Error Page)
+getPage :: ValidWikiName -> ValidPageName -> IO (Result Page)
 getPage wname pname = do
   withDB (\db ->
           getWikiId db wname >>=
@@ -373,7 +375,7 @@ getPage wname pname = do
                                     })
 
 -- | Return the list of page names for a wiki
-getPageNames :: ValidWikiName -> IO (Either Error [ValidPageName])
+getPageNames :: ValidWikiName -> IO (Result [ValidPageName])
 getPageNames wname = do
   withDB (\db ->
           getWikiId db wname >>=
@@ -387,7 +389,7 @@ getPageNames wname = do
       where extract = Right . map (! pageName)
 
 -- | Get a given version of a page
-getPageVersion :: ValidWikiName -> ValidPageName -> Int -> IO (Either Error Page)
+getPageVersion :: ValidWikiName -> ValidPageName -> Int -> IO (Result Page)
 getPageVersion wname pname v = do
   withDB (\db ->
           getWikiId db wname >>=
@@ -418,7 +420,7 @@ getPageVersion wname pname v = do
                                     })
 
 -- | Get the existing version numbers of a page
-getPageVersions :: ValidWikiName -> ValidPageName -> IO (Either Error [Int])
+getPageVersions :: ValidWikiName -> ValidPageName -> IO (Result [Int])
 getPageVersions wname pname = do
   withDB (\db ->
           getWikiId db wname >>=
