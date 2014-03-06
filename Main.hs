@@ -11,9 +11,9 @@ import Kiwi.Data
 import qualified Kiwi.Storage as Storage
 import qualified Data.Text as T
 
-
 main :: IO ()
 main = do
+  Storage.createTablesIfNecessary
   target <- Config.target
   case target of
     Config.API -> API.main
