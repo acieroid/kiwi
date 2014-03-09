@@ -11,10 +11,10 @@ $ cabal build
 #+END_SRC
 * Launching
 #+BEGIN_SRC shell
-$ cabal run --target=generate
-Generating index
-$ cabal run
+$ cabal run &
 Server and API listening on port 8000
+$ cabal run -- --target=generate
+Generating index
 #+END_SRC
 * Architecture
 Kiwi has two main components: the rendering engine and the editing
