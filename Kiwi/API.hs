@@ -139,6 +139,7 @@ editWikiPage wname pname req = do
       -- New page
       do response <- withPageName (\w p -> S.addPage w
                                            (Page { pVersion = 0
+                                                 , pLatestVersion = 0
                                                  , pName = p
                                                  , pWikiName = w
                                                  , pContent = T.pack "This page is currently empty" }))
@@ -149,6 +150,7 @@ editWikiPage wname pname req = do
   else
       do response <- withPageName (\w p -> S.editPage w
                                            (Page { pVersion = 0
+                                                 , pLatestVersion = 0
                                                  , pName = p
                                                  , pWikiName = w
                                                  , pContent = TE.decodeUtf8 strictContent }))

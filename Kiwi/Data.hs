@@ -27,8 +27,11 @@ validatePageName s =
     matchRegex validPageNameRegex (T.unpack s) >> Just (ValidPageName s)
 
 -- | Represents a page of the wiki
+-- Note that page versions start at 0 and continuously increase by 1
 data Page = Page {
       pVersion  :: Int           -- ^ Version number of this version of the page
+    , pLatestVersion :: Int      -- ^ Latest version of this page (may
+                                 --   not be the current one)
     , pName     :: ValidPageName -- ^ Name of the page
     , pWikiName :: ValidWikiName -- ^ Name of the wiki that contains this page
       -- TODO: validate page contents
@@ -40,6 +43,7 @@ data Page = Page {
 examplePage :: Page
 examplePage =
     Page { pVersion = 1
+         , pLatestVersion = 1
          , pName = ValidPageName "index"
          , pWikiName = ValidWikiName "example"
          , pContent = "Hello, *world* !"

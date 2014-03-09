@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Kiwi.Render where
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.IO as TextIO
-import System.Directory (createDirectoryIfMissing, copyFile)
+import System.Directory (createDirectoryIfMissing, copyFile, doesFileExist, removeFile)
 import System.FilePath.Posix ((</>), FilePath)
 import Text.Pandoc.Options (def)
 import Text.Pandoc.Readers.Markdown (readMarkdown)
@@ -64,7 +64,7 @@ wikiPage page =
     where wname = show $ pWikiName page
           pname = show $ pName page
           pages = "_pages"
-          versions = pname ++ "_versions"
+          versions = pname ++ ".versions"
           content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
           editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
           newPageFn = "newpage(\"" ++ wname ++ "\");"
@@ -78,14 +78,39 @@ pageVersionFile :: FilePath -> Page -> FilePath
 pageVersionFile dir page =
     (pageFile dir page) ++ "." ++ (show $ pVersion page)
 
--- | A wiki page is renrderable
+pageVersionListFile :: FilePath -> Page -> FilePath
+pageVersionListFile dir page =
+    (pageFile dir page) ++ ".versions"
+
+wikiPageVersionList :: Page -> H.Html
+wikiPageVersionList page =
+    skeleton (wname ++ "/" ++ pname)
+             (do H.h1 $ do
+                   H.a (H.toHtml wname) H.! HA.href "./"
+                   H.toHtml ("/" ++ pname))
+             (H.ul $ forM_ [latestVersion,latestVersion-1..0] pageVersionLink)
+    where wname = show $ pWikiName page
+          pname = show $ pName page
+          latestVersion = pLatestVersion page
+          pageVersionLink version =
+              H.li $ H.a (if version == pVersion page then
+                              H.toHtml (show version ++ " (current)")
+                          else
+                              H.toHtml version) H.!
+               HA.href (HI.stringValue ("./" ++ pname ++ "." ++ (show version)))
+
+-- | A wiki page is renderable (generate only the given version, and
+-- assume that it is the current one)
 instance Renderable Page where
     render dir page = do
       putStrLn ("Generating page " ++ (show $ pName page) ++
                 " in " ++ show (pageVersionFile dir page))
       TextIO.writeFile (pageVersionFile dir page) $ renderMarkup $ wikiPage page
+      doesFileExist vf >>= (\e -> when e (removeFile vf))
+      TextIO.writeFile vf $ renderMarkup $ wikiPageVersionList page
       -- This it now the current version
       copyFile (pageVersionFile dir page) (pageFile dir page)
+      where vf = pageVersionListFile dir page
 
 -- | Create a page listing all the pages contained in a wiki
 wikiPageList :: Wiki -> H.Html

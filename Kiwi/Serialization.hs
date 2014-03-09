@@ -13,6 +13,7 @@ instance ToJSON Page where
                          , "name" .= pName page
                          , "content" .= pContent page
                          , "version" .= pVersion page
+                         , "latestversion" .= pLatestVersion page
                          ]
 
 instance FromJSON Page where
@@ -20,9 +21,11 @@ instance FromJSON Page where
                            v .: "wiki" <*>
                            v .: "name" <*>
                            v .: "content" <*>
-                           v .: "version"
-        where build wname pname content version =
+                           v .: "version" <*>
+                           v .: "latestversion"
+        where build wname pname content version latestVersion =
                   Page { pVersion = version
+                       , pLatestVersion = latestVersion
                        , pName = pname
                        , pWikiName = wname
                        , pContent = content }

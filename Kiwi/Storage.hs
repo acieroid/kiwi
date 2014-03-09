@@ -367,12 +367,14 @@ getPage wname pname = do
                                           version ! pageId .==. constant pid .&&.
                                           version ! pageVersion .==. page ! pageVersion)
                               project $ wikiName << wiki ! wikiName
+                                      # pageLatestVersion << page ! pageLatestVersion
                                       # pageVersion << page ! pageVersion
                                       # pageName << page ! pageName
                                       # pageContent << version ! pageContent)))))
       where extract [] = Left AbnormalError
             extract (hd:_) = Right (Page
                                     { pVersion = hd ! pageVersion
+                                    , pLatestVersion = hd ! pageLatestVersion
                                     , pName = hd ! pageName
                                     , pWikiName = hd ! wikiName
                                     , pContent = hd ! pageContent
@@ -414,10 +416,12 @@ getPageVersion wname pname v = do
                                     version ! pageVersion .==. constant v)
                         project $ wikiName << wiki ! wikiName
                                 # pageName << page ! pageName
+                                # pageLatestVersion << page ! pageLatestVersion
                                 # pageContent << version ! pageContent)))))
       where extract [] = Left VersionDoesNotExist
             extract (hd:_) = Right (Page
                                     { pVersion = v
+                                    , pLatestVersion = hd ! pageLatestVersion
                                     , pName = hd ! pageName
                                     , pWikiName = hd ! wikiName
                                     , pContent = hd ! pageContent
