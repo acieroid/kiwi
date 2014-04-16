@@ -46,30 +46,37 @@ skeleton title header body =
 class Renderable a where
     render :: FilePath -> a -> IO ()
 
--- | Create the full content of a wiki page
-wikiPage :: Page -> H.Html
-wikiPage page =
-    skeleton (wname ++ "/" ++ pname)
-             (do H.h1 $ do
-                   H.a (H.toHtml wname) H.!
-                    HA.href (HI.stringValue ("/" ++ wname ++ "/"))
-                   H.toHtml ("/" ++ pname)
-                 H.a "pages" H.! HA.href (HI.stringValue pages)
-                 " - "
-                 H.a "versions" H.! HA.href (HI.stringValue versions)
-                 " - "
-                 H.a "new page" H.! HA.href "#" H.! HA.onclick (HI.stringValue newPageFn)
-                 " - "
-                 H.a "edit" H.! HA.id "action" H.! HA.href "#" H.! HA.onclick (HI.stringValue editFn))
-             content
+-- | Header of a page
+wikiPageHeader :: Page -> H.Html
+wikiPageHeader page = do
+  H.h1 $ do
+    H.a (H.toHtml wname) H.!
+     HA.href (HI.stringValue ("/" ++ wname ++ "/"))
+    H.toHtml ("/" ++ pname)
+  H.a "pages" H.! HA.href (HI.stringValue pages)
+  " - "
+  H.a "versions" H.! HA.href (HI.stringValue versions)
+  " - "
+  H.a "new page" H.! HA.href "#" H.! HA.onclick (HI.stringValue newPageFn)
+  " - "
+  H.a "edit" H.! HA.id "action" H.! HA.href "#" H.! HA.onclick (HI.stringValue editFn)
     where wname = show $ pWikiName page
           pname = show $ pName page
           pages = "/" ++ wname ++ "/_pages"
-          versions = pname ++ ".versions"
+          versions = "/" ++ wname ++ "/" ++ pname ++ ".versions"
           content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
           editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
           newPageFn = "newpage(\"" ++ wname ++ "\");"
 
+-- | Create the full content of a wiki page
+wikiPage :: Page -> H.Html
+wikiPage page =
+    skeleton (wname ++ "/" ++ pname)
+             (wikiPageHeader page)
+             content
+    where wname = show $ pWikiName page
+          pname = show $ pName page
+          content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
 
 pageFile :: FilePath -> Page -> FilePath
 pageFile dir page =
@@ -86,10 +93,7 @@ pageVersionListFile dir page =
 wikiPageVersionList :: Page -> H.Html
 wikiPageVersionList page =
     skeleton (wname ++ "/" ++ pname)
-             (do H.h1 $ do
-                   H.a (H.toHtml wname) H.!
-                    HA.href (HI.stringValue ("/" ++ wname ++ "/"))
-                   H.toHtml ("/" ++ pname))
+             (wikiPageHeader page)
              (H.ul $ forM_ [latestVersion,latestVersion-1..0] pageVersionLink)
     where wname = show $ pWikiName page
           pname = show $ pName page
