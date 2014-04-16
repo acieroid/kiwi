@@ -10,7 +10,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Quentin Stievenart
 maintainer:          quentin.stievenart@gmail.com
--- copyright:           
+-- copyright:
 category:            Web
 build-type:          Simple
 extra-source-files:  README.org

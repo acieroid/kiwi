@@ -20,7 +20,7 @@ import Kiwi.Generate
 import Kiwi.Serialization
 import qualified Kiwi.Storage as S
 
-main :: IO () 
+main :: IO ()
 main = do
   port <- Config.port
   putStrLn $ "API listening on port " ++ show port
@@ -66,7 +66,7 @@ success = object ["result" .= ("success" :: T.Text)]
 
 failure :: T.Text -> Value
 failure reason = object [ "result" .= ("failure" :: T.Text)
-                        , "reason" .= reason ] 
+                        , "reason" .= reason ]
 
 buildResult :: ToJSON a => S.Result a -> Response
 buildResult (Right x) =
@@ -107,12 +107,15 @@ withPageName action wname pname =
                        (validatePageName pname))
           (validateWikiName wname)
 
-ifNecessary :: IO () -> IO ()
-ifNecessary action = do
+ifNecessary :: Response -> IO () -> IO ()
+ifNecessary response action | responseStatus response == status200 = do
   target <- Config.target
   case target of
     Config.ServerAndAPI -> action
     _ -> return ()
+ifNecessary _ _ =
+    -- Don't do anything if we don't return 200
+    return ()
 
 toSuccess :: S.Result a -> S.Result Value
 toSuccess = fmap (const success)
@@ -120,7 +123,7 @@ toSuccess = fmap (const success)
 addWiki :: T.Text -> Request -> IO Response
 addWiki wname req = do
     response <- withWikiName ((fmap toSuccess) . S.addWiki) wname
-    ifNecessary (renderWiki $ T.unpack wname)
+    ifNecessary response (renderWiki $ T.unpack wname)
     return response
 
 getWikiPages :: T.Text -> IO Response
@@ -145,7 +148,7 @@ editWikiPage wname pname req = do
                                                  , pContent = T.pack "This page is currently empty" }))
                                   wname pname
          -- TODO: only wiki index & new page are necessary
-         ifNecessary (renderWiki (T.unpack wname))
+         ifNecessary response (renderWiki (T.unpack wname))
          return response
   else
       do response <- withPageName (\w p -> S.editPage w
@@ -155,5 +158,5 @@ editWikiPage wname pname req = do
                                                  , pWikiName = w
                                                  , pContent = TE.decodeUtf8 strictContent }))
                                   wname pname
-         ifNecessary (renderPage (T.unpack wname) (T.unpack pname))
+         ifNecessary response (renderPage (T.unpack wname) (T.unpack pname))
          return response

@@ -25,10 +25,10 @@ skeleton title header body =
     H.docTypeHtml $ do
       H.head $ do
         H.meta H.! HA.charset "utf-8"
-        H.link H.! HA.rel "stylesheet" H.! HA.type_ "text/css" H.! HA.href "../style.css"
+        H.link H.! HA.rel "stylesheet" H.! HA.type_ "text/css" H.! HA.href "/style.css"
         -- TODO: host this file too
         H.script H.! HA.src "http://code.jquery.com/jquery-1.10.1.min.js" $ ""
-        H.script H.! HA.src "../kiwi.js" $ ""
+        H.script H.! HA.src "/kiwi.js" $ ""
         H.title $ H.toHtml $ title
       H.body $ do
         H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
@@ -51,7 +51,8 @@ wikiPage :: Page -> H.Html
 wikiPage page =
     skeleton (wname ++ "/" ++ pname)
              (do H.h1 $ do
-                   H.a (H.toHtml wname) H.! HA.href "./"
+                   H.a (H.toHtml wname) H.!
+                    HA.href (HI.stringValue ("/" ++ wname ++ "/"))
                    H.toHtml ("/" ++ pname)
                  H.a "pages" H.! HA.href (HI.stringValue pages)
                  " - "
@@ -86,7 +87,8 @@ wikiPageVersionList :: Page -> H.Html
 wikiPageVersionList page =
     skeleton (wname ++ "/" ++ pname)
              (do H.h1 $ do
-                   H.a (H.toHtml wname) H.! HA.href "./"
+                   H.a (H.toHtml wname) H.!
+                    HA.href (HI.stringValue ("/" ++ wname ++ "/"))
                    H.toHtml ("/" ++ pname))
              (H.ul $ forM_ [latestVersion,latestVersion-1..0] pageVersionLink)
     where wname = show $ pWikiName page
@@ -97,7 +99,8 @@ wikiPageVersionList page =
                               H.toHtml (show version ++ " (current)")
                           else
                               H.toHtml version) H.!
-               HA.href (HI.stringValue ("./" ++ pname ++ "." ++ (show version)))
+               HA.href (HI.stringValue ("/" ++ wname ++ "/" ++
+                                        pname ++ "." ++ (show version)))
 
 -- | A wiki page is renderable (generate only the given version, and
 -- assume that it is the current one)
