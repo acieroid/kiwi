@@ -29,11 +29,15 @@ main = do
 app :: Application
 app req =
     case (requestMethod req, simplify $ pathInfo req) of
-        ("POST", ["wiki", wname]) -> addWiki wname req
-        ("GET", ["wiki", wname]) -> getWikiPages wname
-        ("GET", ["wiki", wname, pname]) -> getWikiPage wname pname
-        ("POST", ["wiki", wname, pname]) -> editWikiPage wname pname req
-        _ -> return notFound
+        ("POST", ["wiki", wname]) ->
+            addWiki wname req
+        ("GET", ["wiki", wname]) ->
+            getWikiPages wname
+        ("GET", "wiki":wname:pname) ->
+            getWikiPage wname (T.intercalate "/" pname)
+        ("POST", "wiki":wname:pname) ->
+            editWikiPage wname (T.intercalate "/" pname) req
+        _ -> (return unsupported)
     where dropEmpty = filter (not . T.null)
           dropApi ("api":rest) = rest
           dropApi url = url
@@ -85,6 +89,9 @@ buildResult (Left err) =
 
 notFound :: Response
 notFound = build status404 $ failure "Not Found"
+
+unsupported :: Response
+unsupported = build status404 $ failure "Unsupported Operation"
 
 notImplemented :: Response
 notImplemented = build status404 $ failure "Not Implemented (...yet)"
