@@ -2,8 +2,8 @@
 
 module Kiwi.Data (
   AccessMode(..), Index(..), examplePage, exampleWiki, index, indexPageName,
-  Page(..), ValidPageName, validatePageName, ValidWikiName, validateWikiName,
-  Wiki(..)
+  Page(..), pageNameComponents, ValidPageName, validatePageName, ValidWikiName,
+  validateWikiName, Wiki(..)
   ) where
 
 import qualified Data.Text as T
@@ -16,6 +16,12 @@ data ValidPageName = ValidPageName T.Text
 
 instance Show ValidPageName where
     show (ValidPageName s) = T.unpack s
+
+-- | Extract the components of the page name (eg. foo/bar gives has the
+-- components foo and bar)
+pageNameComponents :: ValidPageName -> [String]
+pageNameComponents (ValidPageName pname) =
+    map T.unpack $ T.splitOn "/" pname
 
 -- | Regex that valid page names should match
 validPageNameRegex :: Regex

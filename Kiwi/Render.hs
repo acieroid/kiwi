@@ -6,7 +6,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.IO as TextIO
 import System.Directory (createDirectoryIfMissing, copyFile, doesFileExist, removeFile)
-import System.FilePath.Posix ((</>), FilePath)
+import System.FilePath.Posix ((</>), dropFileName, FilePath)
 import Text.Pandoc.Options (def)
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Text.Pandoc.Writers.HTML (writeHtml)
@@ -64,7 +64,7 @@ wikiPage page =
              content
     where wname = show $ pWikiName page
           pname = show $ pName page
-          pages = "_pages"
+          pages = "/" ++ wname ++ "/_pages"
           versions = pname ++ ".versions"
           content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
           editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
@@ -73,7 +73,7 @@ wikiPage page =
 
 pageFile :: FilePath -> Page -> FilePath
 pageFile dir page =
-    dir </> (show $ pName page)
+    dir </> (foldl1 (</>) $ pageNameComponents $ pName page)
 
 pageVersionFile :: FilePath -> Page -> FilePath
 pageVersionFile dir page =
@@ -108,12 +108,14 @@ instance Renderable Page where
     render dir page = do
       putStrLn ("Generating page " ++ (show $ pName page) ++
                 " in " ++ show (pageVersionFile dir page))
-      TextIO.writeFile (pageVersionFile dir page) $ renderMarkup $ wikiPage page
-      doesFileExist vf >>= (\e -> when e (removeFile vf))
-      TextIO.writeFile vf $ renderMarkup $ wikiPageVersionList page
+      createDirectoryIfMissing True $ dropFileName vf
+      TextIO.writeFile vf $ renderMarkup $ wikiPage page
+      doesFileExist vlf >>= (\e -> when e (removeFile vlf))
+      TextIO.writeFile vlf $ renderMarkup $ wikiPageVersionList page
       -- This it now the current version
       copyFile (pageVersionFile dir page) (pageFile dir page)
-      where vf = pageVersionListFile dir page
+      where vlf = pageVersionListFile dir page
+            vf = pageVersionFile dir page
 
 -- | Create a page listing all the pages contained in a wiki
 wikiPageList :: Wiki -> H.Html
