@@ -2,11 +2,11 @@
 module Kiwi.Render where
 
 import Control.Monad (forM_, when)
-import qualified Data.Set as Set
+import Data.List (sort)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.IO as TextIO
 import System.Directory (createDirectoryIfMissing, copyFile, doesFileExist, removeFile)
-import System.FilePath.Posix ((</>), dropFileName, FilePath)
+import System.FilePath.Posix ((</>), dropFileName)
 import Text.Pandoc.Options (def)
 import Text.Pandoc.Readers.Markdown (readMarkdown)
 import Text.Pandoc.Writers.HTML (writeHtml)
@@ -29,7 +29,7 @@ skeleton title header body =
         -- TODO: host this file too
         H.script H.! HA.src "http://code.jquery.com/jquery-1.10.1.min.js" $ ""
         H.script H.! HA.src "/kiwi.js" $ ""
-        H.title $ H.toHtml $ title
+        H.title $ H.toHtml title
       H.body $ do
         H.div H.! HA.class_ "content" H.! HA.id "banner" $ header
         H.div H.! HA.class_ "content" H.! HA.id "dialog" $ ""
@@ -99,10 +99,10 @@ wikiPageVersionList page =
           pname = show $ pName page
           latestVersion = pLatestVersion page
           pageVersionLink version =
-              H.li $ H.a (if version == pVersion page then
-                              H.toHtml (show version ++ " (current)")
-                          else
-                              H.toHtml version) H.!
+              H.li $ H.a $ H.toHtml (if version == pVersion page then
+                                         show version ++ " (current)"
+                                     else
+                                         show version) H.!
                HA.href (HI.stringValue ("/" ++ wname ++ "/" ++
                                         pname ++ "." ++ (show version)))
 
@@ -128,7 +128,7 @@ wikiPageList wiki =
                       H.a "new page" H.! HA.href "#" H.! HA.onclick "newpage();")
              (H.ul $ forM_ pages pageLink)
     where name = show $ wName wiki
-          pages = map fst $ wPages wiki
+          pages = sort $ map fst $ wPages wiki
           pageLink p = H.li $ H.a H.! HA.href (HI.stringValue $ show p) $
                                   H.toHtml $ show p
 

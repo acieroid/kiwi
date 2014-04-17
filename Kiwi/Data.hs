@@ -12,7 +12,7 @@ import Text.Regex (Regex, mkRegex, matchRegex)
 -- | An opaque type representing a valid name of a page (that
 -- can be used in an URL)
 data ValidPageName = ValidPageName T.Text
-                     deriving Eq
+                     deriving (Eq, Ord)
 
 instance Show ValidPageName where
     show (ValidPageName s) = T.unpack s
@@ -67,7 +67,7 @@ data AccessMode = ReadWrite     -- ^ Read and write for everybody
 
 -- | An opaque type representing a valid name of a wiki
 data ValidWikiName = ValidWikiName T.Text
-                     deriving Eq
+                     deriving (Eq, Ord)
 
 instance Show ValidWikiName where
     show (ValidWikiName s) = T.unpack s
