@@ -125,12 +125,13 @@ instance Renderable Page where
 wikiPageList :: Wiki -> H.Html
 wikiPageList wiki =
     skeleton name (do H.h1 $ H.toHtml name
-                      H.a "new page" H.! HA.href "#" H.! HA.onclick "newpage();")
+                      H.a "new page" H.! HA.href "#" H.! HA.onclick (HI.stringValue newPageFn))
              (H.ul $ forM_ pages pageLink)
     where name = show $ wName wiki
           pages = sort $ map fst $ wPages wiki
           pageLink p = H.li $ H.a H.! HA.href (HI.stringValue $ show p) $
                                   H.toHtml $ show p
+          newPageFn = "newpage(\"" ++ name ++ "\");"
 
 -- | A wiki is renderable
 instance Renderable Wiki where
@@ -139,8 +140,7 @@ instance Renderable Wiki where
                 " in " ++ show wikiDir)
       createDirectoryIfMissing True wikiDir
       TextIO.writeFile pageListFile $ renderMarkup $ wikiPageList wiki
-      mapM_ (\(name, page) -> do
-               render wikiDir page) $ wPages wiki
+      mapM_ (\(_, page) -> render wikiDir page) $ wPages wiki
       where wikiDir = dir </> (show $ wName wiki)
             pageListFile = wikiDir </> "_pages"
 
