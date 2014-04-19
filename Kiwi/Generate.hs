@@ -1,15 +1,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Kiwi.Generate where
 
-import Control.Applicative ((<$>))
-import qualified Data.Text as T
-import System.Environment (getArgs, getEnv)
-import Control.Exception (catch)
+import Control.Monad (forM_)
 
 import qualified Kiwi.Config as Config
 import Kiwi.Data
 import Kiwi.Render
 import Kiwi.QueryAPI
+
+renderAll :: IO ()
+renderAll =
+  getWikiNames >>= (\wikis -> forM_ wikis renderWiki)
 
 renderWiki :: String -> IO ()
 renderWiki wname = do
@@ -33,6 +34,6 @@ renderIndex = do
 main :: IO ()
 main =
   Config.wiki >>=
-        maybe renderIndex
+        maybe (renderIndex >> renderAll)
               (\w -> Config.page >>= maybe (renderWiki w)
                                            (renderPage w))
