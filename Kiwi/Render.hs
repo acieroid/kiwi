@@ -64,7 +64,6 @@ wikiPageHeader page = do
           pname = show $ pName page
           pages = "/" ++ wname ++ "/_pages"
           versions = "/" ++ wname ++ "/" ++ pname ++ ".versions"
-          content = writeHtml def $ readMarkdown def $ T.unpack $ pContent page
           editFn = "edit(\"" ++ wname ++ "\",\"" ++ pname ++ "\");"
           newPageFn = "newpage(\"" ++ wname ++ "\");"
 
@@ -99,12 +98,13 @@ wikiPageVersionList page =
           pname = show $ pName page
           latestVersion = pLatestVersion page
           pageVersionLink version =
-              H.li $ H.a $ H.toHtml (if version == pVersion page then
+              H.li (H.a (H.toHtml (if version == pVersion page then
                                          show version ++ " (current)"
                                      else
-                                         show version) H.!
-               HA.href (HI.stringValue ("/" ++ wname ++ "/" ++
-                                        pname ++ "." ++ (show version)))
+                                         show version))
+                    H.!
+                     HA.href (HI.stringValue ("/" ++ wname ++ "/" ++
+                                                  pname ++ "." ++ (show version))))
 
 -- | A wiki page is renderable (generate only the given version, and
 -- assume that it is the current one)
