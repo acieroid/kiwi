@@ -29,6 +29,8 @@ main = do
 app :: Application
 app req =
     case (requestMethod req, simplify $ pathInfo req) of
+        ("GET", ["wiki"]) ->
+            getWikiNames
         ("POST", ["wiki", wname]) ->
             addWiki wname req
         ("GET", ["wiki", wname]) ->
@@ -167,3 +169,7 @@ editWikiPage wname pname req = do
                                   wname pname
          ifNecessary response (renderPage (T.unpack wname) (T.unpack pname))
          return response
+
+getWikiNames :: IO Response
+getWikiNames =
+    S.getWikiNames >>= return . buildResult

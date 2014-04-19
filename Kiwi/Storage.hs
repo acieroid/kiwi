@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
 module Kiwi.Storage (
-  addWiki, addPage, editPage, getPage, getPageNames, getPageVersions,
-  createTablesIfNecessary,
+  addWiki, addPage, editPage, getPage, getPageNames, getPageVersion,
+  getPageVersions, getWikiNames, createTablesIfNecessary,
   Error(..), Result(..)
   ) where
 
@@ -448,3 +448,12 @@ getPageVersions wname pname = do
                                     version ! pageId .==. constant pid)
                         project $ pageVersion << version ! pageVersion)))))
       where extract = Right . map (! pageVersion)
+
+-- | Get the list of existing wikis
+getWikiNames :: IO (Result [ValidWikiName])
+getWikiNames =
+  withDB (\db ->
+              fmap extract $ query db $ do
+                wikis <- table wikiTable
+                project $ wikiName << wikis ! wikiName)
+      where extract = Right . map (! wikiName)

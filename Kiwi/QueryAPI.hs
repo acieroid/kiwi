@@ -60,3 +60,7 @@ getWiki wname = do
                                  , wPassword = Nothing -- TODO
                                  }
         extract = maybe (return Nothing) (>>= return . Just)
+
+getWikiNames :: IO [String]
+getWikiNames =
+  (decode <$> get "/wiki/") >>= (maybe (return []) return)
