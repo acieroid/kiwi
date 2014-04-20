@@ -1,8 +1,7 @@
 * About
-Kiwi is a simple wiki system similar to the currently defunct
-couch.it: everyone can create a new wiki (maybe protected by a
-password), composed by a set of pages. No authentication is required,
-and all the changes are kept permanently.
+Kiwi is a simple wiki system similar to the currently defunct couch.it: everyone
+can create a new wiki (maybe protected by a password), composed by a set of
+pages. No authentication is required, and all the changes are kept permanently.
 * Compilation
 #+BEGIN_SRC shell
 $ cabal install --only-dependencies
@@ -12,50 +11,46 @@ $ cabal build
 * Launching
 #+BEGIN_SRC shell
 $ cabal run &
-Server and API listening on port 8000
+API listening on port 8000
 $ cabal run -- --target=generate
 Generating index
 #+END_SRC
+
+A static file server should serve the files of the =wiki/= directory, and
+redirect the queries (whose url start with =/wiki/=) to the API, listening on
+=localhost:8000= by default. The simplest way to do so is to use nginx with a
+configuration similar to the following one.
+
+#+BEGIN_SRC conf
+server {
+  listen 8001;
+  server_name localhost;
+
+  location / {
+    root   /path/to/kiwi/wiki/;
+    index  index;
+    default_type text/html;
+  }
+
+  location /wiki {
+    proxy_pass http://localhost:8000;
+  }
+}
+#+END_SRC
+
+You can also use the target =serverandapi= to use a builtin server for serving
+static files, but it seems to induce some bugs, and is thus not advised (at
+least until the source of those bugs is identified).
 * Architecture
-Kiwi has two main components: the rendering engine and the editing
-engine. The rendering engine simply generates static html pages from
-the description of a wiki; those static pages will be served by a web
-server, statically. The editing engine has a simple API to submit
-changes to a page, and once a page has been changed, the rendering
-engine will be called to regenerate this page.
+Kiwi has two main components: the *rendering engine* and the *editing
+engine*. The *rendering engine* simply generates static html pages from the
+description of a wiki; those static pages will be served by a web server,
+statically. The *editing engine* has a simple REST API to submit changes to a
+page, and once a page has been changed, the rendering engine will be called to
+regenerate this page.
 
-The static pages rendered by the rendering engine contains some
-Javascript code to call the editing engine.
-
-* Storage and Schema
-Storage is done on a persistent key-value store.
-
-Each wiki is stored under the prefix =wiki.<wid>= where =<wid>= is
-a unique wiki identifier. This prefix has the following suffixes:
-  - =name=: name of the wiki.
-  - =page=: prefix for the pages.
-  - =password=: optional hash of the wiki's password.
-  - =access=: "+r+w" or "+r-w", "-r-w", respectively for a public wiki
-    (read and write for everybody), a wiki with writes protected by a
-    password, and a wiki with reads and writes protected by a password.
-  - =date=: date of creation of this wiki
-
-Each page of a wiki is thus stored under =page.<pid>= where =<pid>=
-is a unique page identifier. The keys under this prefix are:
-  - =name=: name of the page.
-  - =version.current=: current version of the page.
-  - =version.latest=: latest version of the page
-  - =version.<n>.content=: content of the nth version of the page (n
-    is an integer).
-  - =version.<n>.date=: date of creation of this version.
-
-By default, each wiki has an page named =index= pre-filled.
-
-Also, for simplicity reasons, the prefixes =hashes= (resp.
-=wiki.<wid>.hashes=) contains keys equal to the hash of the wiki name
-(resp. page name), associated with the unique identifier of this wiki
-(resp. page). =wiki.nextwid= and =wiki.<wid>.pages.nextpid= contains
-the next value for this unique identifier.
+The static pages rendered by the rendering engine contains some Javascript code
+to call the editing engine.
 
 * API
 ** Add a wiki
@@ -74,7 +69,8 @@ the next value for this unique identifier.
     - 401 if this wiki is protected or the password is incorrect
     - 404 if the page does not exist
 
-If the page is protected, add the =GET= parameter =password=.
+# No passwords yet
+# If the page is protected, add the =GET= parameter =password=.
 
 ** Edit a wiki page
   - URI: =/wiki/<name>/<pagename>=
@@ -86,7 +82,7 @@ If the page is protected, add the =GET= parameter =password=.
     - 415 if the input is not valid
 
 If the page does not exist, it is created.
-If the page is protected, add the =POST= parameter =password=.
+If the page is write-protected, add the =POST= parameter =password=.
 
 ** Restore a previous version of a wiki page
 To do this, simply get the content of the version you want, and set
@@ -100,4 +96,5 @@ the current content to this.
     hold a lock for a specific amount of time to avoid blocking
     everybody by constantly acquiring the lock.
   - Use a message queue for regenerating the pages instead of doing
-    blocking calls
+    blocking calls.
+  - Another idea? Ping me and we can discuss it.

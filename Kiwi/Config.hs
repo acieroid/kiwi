@@ -36,7 +36,7 @@ defaultArgs = Args
               , argPage = Nothing
                           &= explicit &= name "page"
                           &= help "Page to generate"
-              , argTarget = ServerAndAPI
+              , argTarget = API
                             &= explicit &= name "target"
                             &= help "What to do"
               }
