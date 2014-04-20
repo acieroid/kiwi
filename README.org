@@ -18,24 +18,11 @@ Generating index
 
 A static file server should serve the files of the =wiki/= directory, and
 redirect the queries (whose url start with =/wiki/=) to the API, listening on
-=localhost:8000= by default. The simplest way to do so is to use nginx with a
-configuration similar to the following one.
+=localhost:8000= by default. The simplest way to do so is to use nginx with the
+provided configuration:
 
-#+BEGIN_SRC conf
-server {
-  listen 8001;
-  server_name localhost;
-
-  location / {
-    root   /path/to/kiwi/wiki/;
-    index  index;
-    default_type text/html;
-  }
-
-  location /wiki {
-    proxy_pass http://localhost:8000;
-  }
-}
+#+BEGIN_SRC shell
+$ nginx -p ./ -c nginx.conf
 #+END_SRC
 
 You can also use the target =serverandapi= to use a builtin server for serving
