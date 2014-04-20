@@ -120,6 +120,7 @@ ifNecessary response action | responseStatus response == status200 = do
   target <- Config.target
   case target of
     Config.ServerAndAPI -> action
+    Config.API -> action
     _ -> return ()
 ifNecessary _ _ =
     -- Don't do anything if we don't return 200
