@@ -36,9 +36,9 @@ skeleton title header body =
         H.div H.! HA.class_ "content" H.! HA.id "main" $ body
         H.hr
         H.footer $ do
-          "Generated with luvz by "
+          _ <- "Generated with luvz by "
           H.a "awesom" H.! HA.href "http://awesom.eu"
-          ". Get your own instance! Use the "
+          _ <- ". Get your own instance! Use the "
           H.a "source" H.! HA.href "https://github.com/acieroid/kiwi"
           "."
 
@@ -54,11 +54,11 @@ wikiPageHeader page = do
      HA.href (HI.stringValue ("/" ++ wname ++ "/"))
     H.toHtml ("/" ++ pname)
   H.a "pages" H.! HA.href (HI.stringValue pages)
-  " - "
+  _ <- " - "
   H.a "versions" H.! HA.href (HI.stringValue versions)
-  " - "
+  _ <- " - "
   H.a "new page" H.! HA.href "#" H.! HA.onclick (HI.stringValue newPageFn)
-  " - "
+  _ <- " - "
   H.a "edit" H.! HA.id "action" H.! HA.href "#" H.! HA.onclick (HI.stringValue editFn)
     where wname = show $ pWikiName page
           pname = show $ pName page

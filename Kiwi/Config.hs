@@ -2,7 +2,6 @@
 module Kiwi.Config where
 
 import Data.Functor ((<$>))
-import System.Environment
 import System.Console.CmdArgs ((&=), cmdArgs, Data, details, explicit,
                                help, name, program, summary, typDir, Typeable)
 
@@ -20,6 +19,7 @@ data Args = Args
     }
             deriving (Show, Data, Typeable)
 
+defaultArgs :: Args
 defaultArgs = Args
               { argWikiDir = "./wiki" &= typDir
                              &= explicit &= name "wikidir"

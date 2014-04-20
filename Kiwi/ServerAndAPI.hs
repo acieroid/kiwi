@@ -7,6 +7,7 @@ import Network.Wai.Handler.Warp
 import qualified Kiwi.API as API
 import qualified Kiwi.Config as Config
 import qualified Kiwi.Server as Server
+import Debug.Trace (traceShow)
 
 main :: IO ()
 main = do
@@ -17,4 +18,5 @@ main = do
 app :: Application
 app req = case pathInfo req of
             "wiki":_ -> API.app req
-            _ -> Server.static req
+            x ->
+                traceShow x $ Server.static req

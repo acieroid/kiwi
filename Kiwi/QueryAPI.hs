@@ -2,7 +2,7 @@
 module Kiwi.QueryAPI where
 
 import Control.Applicative ((<$>), (<*>))
-import Data.Aeson (fromJSON, decode)
+import Data.Aeson (decode)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -10,9 +10,9 @@ import qualified Data.Text.Encoding as TE
 import Network.Http.Client (openConnection, buildRequest, http, Method(..), sendRequest, emptyBody, receiveResponse, closeConnection, setAccept)
 import qualified System.IO.Streams as Streams
 
-import Kiwi.Config as Config
+import qualified Kiwi.Config as Config
 import Kiwi.Data
-import Kiwi.Serialization
+import Kiwi.Serialization ()
 
 readAll :: Streams.InputStream B.ByteString -> IO BL.ByteString
 readAll i = BL.concat <$> applyWhileJust Streams.read i
@@ -43,7 +43,7 @@ getPage wname pname =
   decode <$> get ("/wiki/" ++ wname ++ "/" ++ pname)
 
 getPages :: String -> [String] -> IO [Page]
-getPages wname [] = return []
+getPages _ [] = return []
 getPages wname (pname:pnames) = do
   page <- getPage wname pname
   pages <- getPages wname pnames
@@ -54,11 +54,11 @@ getWiki wname = do
   pageNames <- decode <$> get ("/wiki/" ++ wname)
   pages <- extract $ (getPages wname) <$> pageNames
   return $ build <$> (validateWikiName $ T.pack wname) <*> pages
-  where build wname pages = Wiki { wName = wname
-                                 , wPages = map (\p -> (pName p, p)) pages
-                                 , wAccess = ReadWrite -- TODO
-                                 , wPassword = Nothing -- TODO
-                                 }
+  where build name pages = Wiki { wName = name
+                                , wPages = map (\p -> (pName p, p)) pages
+                                , wAccess = ReadWrite -- TODO
+                                , wPassword = Nothing -- TODO
+                                }
         extract = maybe (return Nothing) (>>= return . Just)
 
 getWikiNames :: IO [String]

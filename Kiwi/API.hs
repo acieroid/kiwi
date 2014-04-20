@@ -3,22 +3,20 @@
 module Kiwi.API where
 
 import Blaze.ByteString.Builder (fromLazyByteString)
-import Data.Aeson
-import qualified Data.ByteString.UTF8 as BU
+import Data.Aeson ((.=), ToJSON, Value, object, encode)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import Data.Monoid (mconcat)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Network.Wai
-import Network.Wai.Handler.Warp
 import Network.HTTP.Types (ResponseHeaders, Status(..), status200, status404, status500)
+import Network.Wai (Application, lazyRequestBody, pathInfo, Request, requestMethod, Response, responseBuilder, responseStatus)
+import Network.Wai.Handler.Warp (run)
 
 import qualified Kiwi.Config as Config
 import Kiwi.Data
 import Kiwi.Generate
-import Kiwi.Serialization
 import qualified Kiwi.Storage as S
+
 
 main :: IO ()
 main = do
@@ -32,7 +30,7 @@ app req =
         ("GET", ["wiki"]) ->
             getWikiNames
         ("POST", ["wiki", wname]) ->
-            addWiki wname req
+            addWiki wname
         ("GET", ["wiki", wname]) ->
             getWikiPages wname
         ("GET", "wiki":wname:pname) ->
@@ -85,6 +83,7 @@ buildResult (Left err) =
                 S.WrongPassword -> (statusPasswordProtected, "Incorrect Password")
                 S.PageDoesNotExist -> (status404, "Page Not Found")
                 S.WikiDoesNotExist -> (status404, "Wiki Not Found")
+                S.VersionDoesNotExist -> (status404, "Version Not Found")
                 S.WikiAlreadyExists -> (statusAlreadyExists, "Wiki Already Exists")
                 S.PageAlreadyExists -> (statusAlreadyExists, "Page Already Exists")
                 S.AbnormalError -> (status500, "Unexpected Error")
@@ -129,8 +128,8 @@ ifNecessary _ _ =
 toSuccess :: S.Result a -> S.Result Value
 toSuccess = fmap (const success)
 
-addWiki :: T.Text -> Request -> IO Response
-addWiki wname req = do
+addWiki :: T.Text -> IO Response
+addWiki wname = do
     response <- withWikiName ((fmap toSuccess) . S.addWiki) wname
     ifNecessary response (renderWiki $ T.unpack wname)
     return response
