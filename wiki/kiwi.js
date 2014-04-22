@@ -6,7 +6,8 @@ function handle_json_error(err) {
     try {
         error(JSON.parse(err.responseText).reason);
     } catch (e) {
-        error("cannot parse response: " + e);
+        error("cannot parse response: " + e +
+              ".\nResponse was: " + err.responseText);
     }
 }
 
