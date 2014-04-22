@@ -42,13 +42,13 @@ function newpage(wiki) {
 }
 
 function addwiki(name) {
-    $.post("/wiki/" + name, function(data) {
+    $.post("/wiki/" + encodeURIComponent(name), function(data) {
         window.location.href = "/" + name + "/";
     }).fail(handle_json_error);
 }
 
 function addpage(wiki, name) {
-    $.post("/wiki/" + wiki + "/" + name, function(data) {
+    $.post("/wiki/" + wiki + "/" + encodeURIComponent(name), function(data) {
         window.location.href = "/" + wiki + "/" + name;
     }).fail(handle_json_error);
 }
