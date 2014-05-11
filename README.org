@@ -19,7 +19,7 @@ Generating index
 A static file server should serve the files of the =wiki/= directory, and
 redirect the queries (whose url start with =/wiki/=) to the API, listening on
 =localhost:8000= by default. The simplest way to do so is to use nginx with the
-provided configuration:
+provided configuration, which will listen on =localhost:8001=:
 
 #+BEGIN_SRC shell
 $ nginx -p ./ -c nginx.conf
