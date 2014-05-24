@@ -3,6 +3,7 @@
 module Kiwi.API where
 
 import Blaze.ByteString.Builder (fromLazyByteString)
+import qualified Control.Exception as E
 import Data.Aeson ((.=), ToJSON, Value, object, encode)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -17,7 +18,6 @@ import Kiwi.Data
 import Kiwi.Generate
 import qualified Kiwi.Storage as S
 
-
 main :: IO ()
 main = do
   port <- Config.port
@@ -26,22 +26,23 @@ main = do
 
 app :: Application
 app req =
-    case (requestMethod req, simplify $ pathInfo req) of
-        ("GET", ["wiki"]) ->
-            getWikiNames
-        ("POST", ["wiki", wname]) ->
-            addWiki wname
-        ("GET", ["wiki", wname]) ->
-            getWikiPages wname
-        ("GET", "wiki":wname:pname) ->
-            getWikiPage wname (T.intercalate "/" pname)
-        ("POST", "wiki":wname:pname) ->
-            editWikiPage wname (T.intercalate "/" pname) req
-        _ -> (return unsupported)
-    where dropEmpty = filter (not . T.null)
-          dropApi ("api":rest) = rest
-          dropApi url = url
-          simplify = dropApi . dropEmpty
+  E.catch (case (requestMethod req, simplify $ pathInfo req) of
+              ("GET", ["wiki"]) ->
+                getWikiNames
+              ("POST", ["wiki", wname]) ->
+                addWiki wname
+              ("GET", ["wiki", wname]) ->
+                getWikiPages wname
+              ("GET", "wiki":wname:pname) ->
+                getWikiPage wname (T.intercalate "/" pname)
+              ("POST", "wiki":wname:pname) ->
+                editWikiPage wname (T.intercalate "/" pname) req
+              _ -> (return unsupported))
+    (\e -> return $ build status500 $ failure $ T.pack $ show (e :: E.SomeException))
+  where dropEmpty = filter (not . T.null)
+        dropApi ("api":rest) = rest
+        dropApi url = url
+        simplify = dropApi . dropEmpty
 
 headers :: ResponseHeaders
 headers = [("Content-Type", "application/json")]
